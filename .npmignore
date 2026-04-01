@@ -1,0 +1,10 @@
+src/
+tests/
+.claude/
+.gitattributes
+CLAUDE.md
+tsconfig.json
+vitest.config.ts
+*.log
+.env
+.env.*

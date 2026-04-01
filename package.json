@@ -1,0 +1,55 @@
+{
+  "name": "ctxlens",
+  "version": "0.1.0",
+  "description": "Token budget analyzer for AI context windows — like du for tokens",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "bin": {
+    "ctxlens": "dist/cli/index.js"
+  },
+  "scripts": {
+    "build": "esbuild src/cli/index.ts --bundle --platform=node --target=node18 --outfile=dist/cli/index.js --format=esm --banner:js=\"#!/usr/bin/env node\" --packages=external",
+    "dev": "tsx src/cli/index.ts",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "lint": "tsc --noEmit",
+    "prepublishOnly": "npm run build"
+  },
+  "keywords": [
+    "ai",
+    "llm",
+    "tokens",
+    "context-window",
+    "tokenizer",
+    "dev-tools",
+    "cli",
+    "claude",
+    "gpt",
+    "gemini"
+  ],
+  "author": "kVadrum",
+  "license": "MIT",
+  "type": "module",
+  "engines": {
+    "node": ">=18"
+  },
+  "files": [
+    "dist",
+    "models",
+    "README.md",
+    "LICENSE"
+  ],
+  "dependencies": {
+    "@dqbd/tiktoken": "^1.0.18",
+    "chalk": "^5.4.1",
+    "commander": "^13.1.0",
+    "ignore": "^7.0.4"
+  },
+  "devDependencies": {
+    "@types/node": "^22.14.0",
+    "esbuild": "^0.25.2",
+    "tsx": "^4.19.3",
+    "typescript": "^5.8.3",
+    "vitest": "^3.1.1"
+  }
+}

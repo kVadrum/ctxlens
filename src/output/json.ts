@@ -1,0 +1,29 @@
+import type { BudgetResult } from "../core/budget.js";
+
+export function renderJson(result: BudgetResult, repositoryName: string): string {
+  return JSON.stringify(
+    {
+      version: "0.1.0",
+      repository: repositoryName,
+      scannedAt: new Date().toISOString(),
+      totalFiles: result.totalFiles,
+      totalTokens: result.totalTokens,
+      model: result.model.id,
+      contextWindow: result.model.contextWindow,
+      utilization: Math.round(result.utilization * 1000) / 1000,
+      status: result.status,
+      directories: result.directories.map((d) => ({
+        path: d.path,
+        tokens: d.tokens,
+        files: d.files,
+      })),
+      files: result.files.map((f) => ({
+        path: f.relativePath,
+        tokens: f.tokens,
+        lines: f.lines,
+      })),
+    },
+    null,
+    2,
+  );
+}
