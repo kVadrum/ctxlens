@@ -7,6 +7,7 @@
  */
 
 import { resolve, basename } from "node:path";
+import { writeFileSync } from "node:fs";
 import { Command } from "commander";
 import { scanDirectory } from "../core/scanner.js";
 import { countTokens, freeEncoders } from "../core/tokenizer.js";
@@ -35,6 +36,7 @@ export const budgetCommand = new Command("budget")
   .option("-q, --quiet", "minimal output: just total tokens and budget status")
   .option("--strip-comments", "strip comments before tokenizing")
   .option("--strip-whitespace", "collapse excess whitespace before tokenizing")
+  .option("-o, --output <file>", "write output to a file instead of stdout")
   .action(async (path: string, opts) => {
     const rootPath = resolve(path);
     const config = loadConfig(rootPath);
@@ -133,17 +135,26 @@ export const budgetCommand = new Command("budget")
 function renderOutput(
   result: ReturnType<typeof computeBudget>,
   rootPath: string,
-  opts: { json?: boolean; quiet?: boolean; model: string },
+  opts: { json?: boolean; quiet?: boolean; model: string; output?: string },
   topN: number,
 ): void {
+  function emit(text: string): void {
+    if (opts.output) {
+      writeFileSync(resolve(opts.output), text, "utf-8");
+      console.log(`Output written to ${opts.output}`);
+    } else {
+      console.log(text);
+    }
+  }
+
   if (opts.json) {
-    console.log(renderJson(result, basename(rootPath)));
+    emit(renderJson(result, basename(rootPath)));
   } else if (opts.quiet) {
     const pct = (result.utilization * 100).toFixed(1);
-    console.log(`${formatTokens(result.totalTokens)} tokens (${pct}% of ${result.model.id}) — ${result.status}`);
+    emit(`${formatTokens(result.totalTokens)} tokens (${pct}% of ${result.model.id}) — ${result.status}`);
   } else {
     const allModels = getAllModels();
     const multiModel = checkMultiModelBudget(result.totalTokens, allModels);
-    console.log(renderTerminal(result, topN, multiModel));
+    emit(renderTerminal(result, topN, multiModel));
   }
 }

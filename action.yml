@@ -1,0 +1,30 @@
+name: 'ctxlens Token Budget Check'
+description: 'Check if your codebase fits within AI model context windows'
+branding:
+  icon: 'eye'
+  color: 'purple'
+
+inputs:
+  model:
+    description: 'Target model for budget calculation'
+    required: false
+    default: 'claude-sonnet-4-6'
+  threshold:
+    description: 'Fail if utilization exceeds this percentage'
+    required: false
+    default: '100'
+  path:
+    description: 'Directory to scan'
+    required: false
+    default: '.'
+
+runs:
+  using: 'composite'
+  steps:
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '18'
+    - name: Run ctxlens
+      shell: bash
+      run: npx ctxlens@latest scan ${{ inputs.path }} --model ${{ inputs.model }} --ci ${{ inputs.threshold }}

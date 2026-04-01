@@ -86,6 +86,8 @@ export interface ScanOptions {
   include: string[];
   /** Glob patterns to exclude (alias for extraIgnore in CLI). */
   exclude: string[];
+  /** Called periodically with the current file count during scanning. */
+  onProgress?: (fileCount: number) => void;
 }
 
 /** A single file discovered by the scanner, with its content loaded. */
@@ -104,15 +106,28 @@ export interface ScannedFile {
  * Loads the .gitignore from {@link rootPath} (if present) and merges it
  * with the built-in default ignore list.
  */
-function loadGitignore(rootPath: string): Ignore {
+function loadIgnoreRules(rootPath: string, respectGitignore: boolean): Ignore {
   const ig = ignore();
   ig.add(DEFAULT_IGNORE);
+
+  // .ctxlensignore — dedicated ignore file (always loaded if present)
   try {
-    const gitignoreContent = readFileSync(join(rootPath, ".gitignore"), "utf-8");
-    ig.add(gitignoreContent);
+    const ctxlensIgnore = readFileSync(join(rootPath, ".ctxlensignore"), "utf-8");
+    ig.add(ctxlensIgnore);
   } catch {
-    // no .gitignore — that's fine
+    // no .ctxlensignore — that's fine
   }
+
+  // .gitignore
+  if (respectGitignore) {
+    try {
+      const gitignoreContent = readFileSync(join(rootPath, ".gitignore"), "utf-8");
+      ig.add(gitignoreContent);
+    } catch {
+      // no .gitignore — that's fine
+    }
+  }
+
   return ig;
 }
 
@@ -151,10 +166,11 @@ export function scanDirectory(
     extraIgnore: [],
     include: [],
     exclude: [],
+    onProgress: undefined,
     ...options,
   };
 
-  const ig = opts.respectGitignore ? loadGitignore(rootPath) : ignore();
+  const ig = loadIgnoreRules(rootPath, opts.respectGitignore);
   if (opts.extraIgnore.length > 0) ig.add(opts.extraIgnore);
   if (opts.exclude.length > 0) ig.add(opts.exclude);
 
@@ -201,6 +217,9 @@ export function scanDirectory(
             content,
             lines: content.split("\n").length,
           });
+          if (opts.onProgress && files.length % 100 === 0) {
+            opts.onProgress(files.length);
+          }
         } catch {
           // skip unreadable files
         }
