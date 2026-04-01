@@ -1,7 +1,9 @@
 src/
 tests/
 .claude/
+.github/
 .gitattributes
+action.yml
 CLAUDE.md
 tsconfig.json
 vitest.config.ts
