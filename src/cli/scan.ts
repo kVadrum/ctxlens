@@ -20,6 +20,7 @@ import type { CompareEntry } from "../output/terminal.js";
 import { renderJson } from "../output/json.js";
 import { renderHtml } from "../output/html.js";
 import { loadConfig } from "../utils/config.js";
+import { stripComments, stripWhitespace } from "../core/stripper.js";
 
 /** The available tokenizer encodings to compare. */
 const COMPARE_ENCODINGS = ["cl100k_base", "o200k_base"];
@@ -39,6 +40,8 @@ export const scanCommand = new Command("scan")
   .option("-q, --quiet", "minimal output: just total tokens and budget status")
   .option("--compare", "compare token counts across different tokenizers")
   .option("--report", "generate an HTML report and open in browser")
+  .option("--strip-comments", "strip comments before tokenizing")
+  .option("--strip-whitespace", "collapse excess whitespace before tokenizing")
   .action(async (path: string, opts) => {
     const rootPath = resolve(path);
     const config = loadConfig(rootPath);
@@ -68,12 +71,17 @@ export const scanCommand = new Command("scan")
       exclude,
     });
 
-    // Tokenize each file
-    const fileTokens: FileTokenInfo[] = files.map((f) => ({
-      relativePath: f.relativePath,
-      tokens: countTokens(f.content, model.tokenizer),
-      lines: f.lines,
-    }));
+    // Tokenize each file (optionally stripping comments/whitespace first)
+    const fileTokens: FileTokenInfo[] = files.map((f) => {
+      let content = f.content;
+      if (opts.stripComments) content = stripComments(content);
+      if (opts.stripWhitespace) content = stripWhitespace(content);
+      return {
+        relativePath: f.relativePath,
+        tokens: countTokens(content, model.tokenizer),
+        lines: f.lines,
+      };
+    });
 
     const depth = parseInt(opts.depth !== "3" ? opts.depth : String(config.depth ?? 3), 10);
     const topN = parseInt(opts.top !== "10" ? opts.top : String(config.top ?? 10), 10);

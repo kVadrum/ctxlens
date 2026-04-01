@@ -17,6 +17,7 @@ import { getChangedFiles, getStagedFiles } from "../core/git.js";
 import { renderTerminal } from "../output/terminal.js";
 import { renderJson } from "../output/json.js";
 import { loadConfig } from "../utils/config.js";
+import { stripComments, stripWhitespace } from "../core/stripper.js";
 
 export const budgetCommand = new Command("budget")
   .description("Simulate context strategies against a model budget")
@@ -31,6 +32,8 @@ export const budgetCommand = new Command("budget")
   .option("-t, --top <n>", "show top N files/dirs", "10")
   .option("--json", "output JSON instead of terminal display")
   .option("-q, --quiet", "minimal output: just total tokens and budget status")
+  .option("--strip-comments", "strip comments before tokenizing")
+  .option("--strip-whitespace", "collapse excess whitespace before tokenizing")
   .action(async (path: string, opts) => {
     const rootPath = resolve(path);
     const config = loadConfig(rootPath);
@@ -74,11 +77,16 @@ export const budgetCommand = new Command("budget")
         exclude: [],
       });
 
-      const fileTokens: FileTokenInfo[] = files.map((f) => ({
-        relativePath: f.relativePath,
-        tokens: countTokens(f.content, model.tokenizer),
-        lines: f.lines,
-      }));
+      const fileTokens: FileTokenInfo[] = files.map((f) => {
+        let content = f.content;
+        if (opts.stripComments) content = stripComments(content);
+        if (opts.stripWhitespace) content = stripWhitespace(content);
+        return {
+          relativePath: f.relativePath,
+          tokens: countTokens(content, model.tokenizer),
+          lines: f.lines,
+        };
+      });
 
       const depth = parseInt(opts.depth, 10);
       const topN = parseInt(opts.top, 10);
@@ -101,11 +109,16 @@ export const budgetCommand = new Command("budget")
       ? allFiles.filter((f) => strategyFilter!.has(f.relativePath))
       : allFiles;
 
-    const fileTokens: FileTokenInfo[] = files.map((f) => ({
-      relativePath: f.relativePath,
-      tokens: countTokens(f.content, model.tokenizer),
-      lines: f.lines,
-    }));
+    const fileTokens: FileTokenInfo[] = files.map((f) => {
+      let content = f.content;
+      if (opts.stripComments) content = stripComments(content);
+      if (opts.stripWhitespace) content = stripWhitespace(content);
+      return {
+        relativePath: f.relativePath,
+        tokens: countTokens(content, model.tokenizer),
+        lines: f.lines,
+      };
+    });
 
     const depth = parseInt(opts.depth, 10);
     const topN = parseInt(opts.top, 10);

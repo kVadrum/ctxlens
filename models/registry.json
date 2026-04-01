@@ -22,10 +22,17 @@
       "tokenizer": "cl100k_base"
     },
     {
-      "id": "gpt-4o",
-      "name": "GPT-4o",
+      "id": "gpt-5.4",
+      "name": "GPT-5.4",
       "provider": "OpenAI",
-      "contextWindow": 128000,
+      "contextWindow": 1047576,
+      "tokenizer": "o200k_base"
+    },
+    {
+      "id": "gpt-5.4-mini",
+      "name": "GPT-5.4 Mini",
+      "provider": "OpenAI",
+      "contextWindow": 1047576,
       "tokenizer": "o200k_base"
     },
     {
@@ -43,6 +50,13 @@
       "tokenizer": "o200k_base"
     },
     {
+      "id": "gpt-4o",
+      "name": "GPT-4o",
+      "provider": "OpenAI",
+      "contextWindow": 128000,
+      "tokenizer": "o200k_base"
+    },
+    {
       "id": "o3",
       "name": "o3",
       "provider": "OpenAI",
@@ -55,6 +69,22 @@
       "provider": "OpenAI",
       "contextWindow": 200000,
       "tokenizer": "o200k_base"
+    },
+    {
+      "id": "gemini-3.1-pro",
+      "name": "Gemini 3.1 Pro",
+      "provider": "Google",
+      "contextWindow": 1048576,
+      "tokenizer": "cl100k_base",
+      "tokenizerNote": "approximation — Gemini uses SentencePiece"
+    },
+    {
+      "id": "gemini-3.1-flash",
+      "name": "Gemini 3.1 Flash",
+      "provider": "Google",
+      "contextWindow": 1048576,
+      "tokenizer": "cl100k_base",
+      "tokenizerNote": "approximation — Gemini uses SentencePiece"
     },
     {
       "id": "gemini-2.5-pro",
@@ -73,6 +103,22 @@
       "tokenizerNote": "approximation — Gemini uses SentencePiece"
     },
     {
+      "id": "grok-4.20",
+      "name": "Grok 4.20",
+      "provider": "xAI",
+      "contextWindow": 256000,
+      "tokenizer": "cl100k_base",
+      "tokenizerNote": "approximation — Grok uses custom tokenizer"
+    },
+    {
+      "id": "grok-3",
+      "name": "Grok 3",
+      "provider": "xAI",
+      "contextWindow": 131072,
+      "tokenizer": "cl100k_base",
+      "tokenizerNote": "approximation — Grok uses custom tokenizer"
+    },
+    {
       "id": "llama-4-scout",
       "name": "Llama 4 Scout",
       "provider": "Meta",
@@ -87,6 +133,38 @@
       "contextWindow": 1000000,
       "tokenizer": "cl100k_base",
       "tokenizerNote": "approximation — Llama uses SentencePiece"
+    },
+    {
+      "id": "deepseek-v3",
+      "name": "DeepSeek V3",
+      "provider": "DeepSeek",
+      "contextWindow": 131072,
+      "tokenizer": "cl100k_base",
+      "tokenizerNote": "approximation — DeepSeek uses custom tokenizer"
+    },
+    {
+      "id": "deepseek-r1",
+      "name": "DeepSeek R1",
+      "provider": "DeepSeek",
+      "contextWindow": 131072,
+      "tokenizer": "cl100k_base",
+      "tokenizerNote": "approximation — DeepSeek uses custom tokenizer"
+    },
+    {
+      "id": "mistral-large",
+      "name": "Mistral Large",
+      "provider": "Mistral",
+      "contextWindow": 131072,
+      "tokenizer": "cl100k_base",
+      "tokenizerNote": "approximation — Mistral uses custom tokenizer"
+    },
+    {
+      "id": "codestral",
+      "name": "Codestral",
+      "provider": "Mistral",
+      "contextWindow": 262144,
+      "tokenizer": "cl100k_base",
+      "tokenizerNote": "approximation — Mistral uses custom tokenizer"
     }
   ]
 }

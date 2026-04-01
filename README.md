@@ -109,17 +109,27 @@ ctxlens models
 | claude-opus-4-6 | Anthropic | 200k | cl100k_base |
 | claude-sonnet-4-6 | Anthropic | 200k | cl100k_base |
 | claude-haiku-4-5 | Anthropic | 200k | cl100k_base |
-| gpt-4o | OpenAI | 128k | o200k_base |
+| gpt-5.4 | OpenAI | 1M | o200k_base |
+| gpt-5.4-mini | OpenAI | 1M | o200k_base |
 | gpt-4.1 | OpenAI | 1M | o200k_base |
 | gpt-4.1-mini | OpenAI | 1M | o200k_base |
+| gpt-4o | OpenAI | 128k | o200k_base |
 | o3 | OpenAI | 200k | o200k_base |
 | o4-mini | OpenAI | 200k | o200k_base |
+| gemini-3.1-pro | Google | 1M | cl100k_base* |
+| gemini-3.1-flash | Google | 1M | cl100k_base* |
 | gemini-2.5-pro | Google | 1M | cl100k_base* |
 | gemini-2.5-flash | Google | 1M | cl100k_base* |
+| grok-4.20 | xAI | 256k | cl100k_base* |
+| grok-3 | xAI | 131k | cl100k_base* |
 | llama-4-scout | Meta | 10M | cl100k_base* |
 | llama-4-maverick | Meta | 1M | cl100k_base* |
+| deepseek-v3 | DeepSeek | 131k | cl100k_base* |
+| deepseek-r1 | DeepSeek | 131k | cl100k_base* |
+| mistral-large | Mistral | 131k | cl100k_base* |
+| codestral | Mistral | 262k | cl100k_base* |
 
-\* Approximation — these models use SentencePiece natively. Token counts may vary ±10–15%.
+\* Approximation — these models use different tokenizers natively. Token counts may vary ±10–15%.
 
 ## CLI reference
 
@@ -139,6 +149,63 @@ Scan a directory and report token counts.
 | `--include <patterns...>` | Only include matching files | — |
 | `--exclude <patterns...>` | Exclude matching files | — |
 | `-q, --quiet` | Minimal output: total tokens and status | — |
+| `--compare` | Compare token counts across tokenizers | — |
+| `--report` | Generate interactive HTML report | — |
+| `--strip-comments` | Strip comments before tokenizing | — |
+| `--strip-whitespace` | Collapse excess whitespace before tokenizing | — |
+
+### `ctxlens budget [path]`
+
+Simulate context strategies against a model budget.
+
+```bash
+# Only count git-modified files
+ctxlens budget --strategy changed
+
+# Only count staged files
+ctxlens budget --strategy staged
+
+# Custom glob patterns
+ctxlens budget --strategy "src/components/**,src/utils/**"
+
+# Simulate without comments
+ctxlens budget --strip-comments --quiet
+```
+
+| Flag | Description | Default |
+|------|-------------|---------|
+| `-m, --model <name>` | Target model | `claude-sonnet-4-6` |
+| `-s, --strategy <s>` | `all`, `changed`, `staged`, or glob patterns | `all` |
+| `-d, --depth <n>` | Directory tree depth | `3` |
+| `-t, --top <n>` | Show top N entries | `10` |
+| `--json` | JSON output | — |
+| `-q, --quiet` | Minimal output | — |
+| `--strip-comments` | Strip comments before tokenizing | — |
+| `--strip-whitespace` | Collapse whitespace before tokenizing | — |
+
+### `ctxlens optimize [path]`
+
+Analyze the codebase and suggest ways to reduce token usage.
+
+```bash
+ctxlens optimize
+```
+
+Flags oversized files, comment-heavy files, test file weight, and highlights type-dense files as efficient for AI context inclusion.
+
+### `ctxlens watch [path]`
+
+Monitor token budget in real-time during development.
+
+```bash
+# Watch with default settings
+ctxlens watch
+
+# Watch with custom threshold
+ctxlens watch --threshold 60
+```
+
+Re-scans on file changes and shows a live status line. Press Ctrl+C to stop.
 
 ### `ctxlens models`
 
@@ -176,7 +243,7 @@ The `--json` flag produces structured output suitable for CI pipelines:
 
 ```json
 {
-  "version": "0.1.0",
+  "version": "0.3.0",
   "repository": "my-project",
   "scannedAt": "2026-04-01T14:22:00Z",
   "totalFiles": 847,
@@ -199,14 +266,31 @@ The `--json` flag produces structured output suitable for CI pipelines:
 ctxlens uses tiktoken encodings via [@dqbd/tiktoken](https://github.com/dqbd/tiktoken) (WASM):
 
 - **cl100k_base** — exact for Claude and GPT-4 models
-- **o200k_base** — exact for GPT-4o, GPT-4.1, o3, o4-mini
+- **o200k_base** — exact for GPT-4o, GPT-4.1, GPT-5.4, o3, o4-mini
 
 For models that use SentencePiece natively (Gemini, Llama), cl100k_base is used as an approximation. Token counts may differ by ±10–15% from the model's native tokenizer. This is acceptable for a budget analyzer — you're planning context usage, not calculating billing.
 
+## Configuration
+
+Create a `.ctxlensrc` file in your project root (or add a `"ctxlens"` key to `package.json`):
+
+```json
+{
+  "defaultModel": "claude-opus-4-6",
+  "ignore": ["*.generated.ts", "coverage/"],
+  "include": ["src/", "tests/"],
+  "depth": 4,
+  "top": 15
+}
+```
+
+You can also set the `CTXLENS_MODEL` environment variable to override the default model.
+
+Priority: CLI flag > `CTXLENS_MODEL` env var > `.ctxlensrc` > default
+
 ## Roadmap
 
-- **0.2.0** — Context strategies (`--strategy changed`, `--strategy staged`), HTML report with treemap visualization, `.ctxlensrc` config file support
-- **0.3.0** — `ctxlens optimize` with actionable recommendations, `ctxlens watch` for real-time monitoring, `--strip-comments` flag, GitHub Action for CI
+- **0.4.0** — GitHub Action for CI (fail PR if budget exceeds threshold), multi-tokenizer comparison in HTML report, `.ctxlensrc` custom model definitions
 
 ## Requirements
 

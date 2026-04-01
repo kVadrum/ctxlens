@@ -1,6 +1,6 @@
 {
   "name": "ctxlens",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "description": "Token budget analyzer for AI context windows — like du for tokens",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
