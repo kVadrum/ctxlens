@@ -55,7 +55,26 @@ npm install --save-dev ctxlens
 
 Requires Node.js 18+.
 
+## Quick start
+
+```bash
+ctxlens init                # Create a .ctxlensrc config (interactive)
+ctxlens scan                # Scan and report token usage
+ctxlens scan --ci 90        # Gate PRs on budget threshold
+ctxlens diff --ref main     # Token impact of changes since main
+ctxlens optimize            # Get actionable suggestions
+```
+
 ## Commands
+
+### `ctxlens init [path]`
+
+Scaffold a `.ctxlensrc` config file with interactive prompts. Asks for default model, directory depth, top-N count, and ignore patterns.
+
+```bash
+ctxlens init            # Interactive setup
+ctxlens init --yes      # Accept all defaults, no prompts
+```
 
 ### `ctxlens scan [path]`
 
@@ -112,11 +131,21 @@ ctxlens scan --ci 80       # Exit 1 if utilization > 80%
 
 Outputs JSON for machine consumption and exits with code 1 if the threshold is exceeded. Use in GitHub Actions, GitLab CI, or any pipeline.
 
+**Sorting and display:**
+
+```bash
+ctxlens scan --sort name       # Sort directories and files alphabetically
+ctxlens scan --sort files      # Sort directories by file count
+ctxlens scan --top 0           # Show all files/directories (no limit)
+```
+
 | Flag | Description | Default |
 |------|-------------|---------|
 | `-m, --model <name>` | Target model for budget calculation | `claude-sonnet-4-6` |
 | `-d, --depth <n>` | Directory tree depth for aggregation | `3` |
-| `-t, --top <n>` | Show top N files/directories | `10` |
+| `-t, --top <n>` | Show top N files/dirs (`0` = all) | `10` |
+| `-s, --sort <key>` | Sort by: `tokens`, `files`, `name` | `tokens` |
+| `-o, --output <file>` | Write output to a file instead of stdout | — |
 | `--ignore <patterns...>` | Additional ignore patterns | — |
 | `--no-gitignore` | Don't respect .gitignore | — |
 | `--json` | Output JSON | — |
@@ -147,6 +176,7 @@ ctxlens budget --strip-comments --quiet                 # Simulate without comme
 | `-s, --strategy <s>` | `all`, `changed`, `staged`, or comma-separated glob patterns | `all` |
 | `-d, --depth <n>` | Directory tree depth | `3` |
 | `-t, --top <n>` | Show top N entries | `10` |
+| `-o, --output <file>` | Write output to a file instead of stdout | — |
 | `--json` | JSON output | — |
 | `-q, --quiet` | Minimal output | — |
 | `--strip-comments` | Strip comments before tokenizing | — |
@@ -154,12 +184,14 @@ ctxlens budget --strip-comments --quiet                 # Simulate without comme
 
 ### `ctxlens diff [path]`
 
-Show the token impact of stripping or changes. Answers *"how many tokens would I save?"*
+Show the token impact of stripping, changes, or differences between git refs. Answers *"how many tokens would I save?"* and *"how did tokens change since main?"*
 
 ```bash
 ctxlens diff --strip-comments                    # Token savings from stripping comments
 ctxlens diff --strip-comments --strip-whitespace  # Combined savings
 ctxlens diff                                      # Token counts of git-changed files
+ctxlens diff --ref main                           # Token delta: current vs a git ref
+ctxlens diff --ref HEAD~3                         # Token delta: current vs 3 commits ago
 ```
 
 | Flag | Description | Default |
@@ -167,6 +199,7 @@ ctxlens diff                                      # Token counts of git-changed 
 | `-m, --model <name>` | Target model for tokenization | `claude-sonnet-4-6` |
 | `--strip-comments` | Compare current vs comment-stripped | — |
 | `--strip-whitespace` | Compare current vs whitespace-collapsed | — |
+| `--ref <ref>` | Compare current tokens to a git ref (e.g. `HEAD~1`, `main`) | — |
 
 ### `ctxlens optimize [path]`
 
@@ -298,7 +331,7 @@ Custom models can be used with any command via `--model my-finetuned`.
 
 ## What gets ignored
 
-The scanner skips these automatically (on top of `.gitignore`):
+The scanner skips these automatically (on top of `.gitignore` and `.ctxlensignore`):
 
 | Category | Patterns |
 |----------|----------|
@@ -310,7 +343,7 @@ The scanner skips these automatically (on top of `.gitignore`):
 | **AI tooling** | `.git`, `.claude` |
 | **Large files** | Any file > 10 MB |
 
-Use `--ignore` or `--exclude` to add patterns. Use `--no-gitignore` to skip `.gitignore` rules.
+Use `--ignore` or `--exclude` to add patterns. Use `--no-gitignore` to skip `.gitignore` rules. You can also create a `.ctxlensignore` file (same syntax as `.gitignore`) for patterns specific to ctxlens.
 
 ## Configuration
 
@@ -346,7 +379,7 @@ The `--json` flag produces structured output for CI pipelines and scripting:
 
 ```json
 {
-  "version": "1.0.0",
+  "version": "1.1.0",
   "repository": "my-project",
   "scannedAt": "2026-04-01T14:22:00Z",
   "totalFiles": 847,
@@ -366,12 +399,32 @@ The `--json` flag produces structured output for CI pipelines and scripting:
 
 ## CI / GitHub Actions
 
-Use `--ci` as a PR quality gate:
+### Using the published action
 
 ```yaml
 # .github/workflows/token-budget.yml
 name: Token Budget Check
 on: [pull_request]
+jobs:
+  budget:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: kVadrum/ctxlens@v1
+        with:
+          model: claude-sonnet-4-6
+          threshold: 90
+```
+
+| Input | Description | Default |
+|-------|-------------|---------|
+| `model` | Target model for budget calculation | `claude-sonnet-4-6` |
+| `threshold` | Fail if utilization exceeds this % | `100` |
+| `path` | Directory to scan | `.` |
+
+### Using npx directly
+
+```yaml
 jobs:
   budget:
     runs-on: ubuntu-latest
@@ -383,7 +436,7 @@ jobs:
       - run: npx ctxlens scan --ci 90
 ```
 
-This fails the PR if the codebase exceeds 90% of the target model's context window.
+Both approaches fail the PR if the codebase exceeds the threshold.
 
 ## Tokenizer accuracy
 

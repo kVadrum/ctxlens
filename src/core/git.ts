@@ -51,3 +51,30 @@ export function getStagedFiles(rootPath: string): string[] {
     return [];
   }
 }
+
+/** Lists all tracked files at a given git ref. */
+export function getFilesAtRef(rootPath: string, ref: string): string[] {
+  try {
+    const output = execFileSync("git", ["ls-tree", "-r", "--name-only", ref], {
+      cwd: rootPath,
+      encoding: "utf-8",
+      stdio: ["pipe", "pipe", "pipe"],
+    });
+    return output.trim().split("\n").filter(Boolean);
+  } catch {
+    return [];
+  }
+}
+
+/** Returns the content of a file at a given git ref. */
+export function getFileContentAtRef(rootPath: string, ref: string, filePath: string): string | null {
+  try {
+    return execFileSync("git", ["show", `${ref}:${filePath}`], {
+      cwd: rootPath,
+      encoding: "utf-8",
+      stdio: ["pipe", "pipe", "pipe"],
+    });
+  } catch {
+    return null;
+  }
+}

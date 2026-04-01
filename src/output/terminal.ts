@@ -19,7 +19,8 @@ const BAR_WIDTH = 18;
 
 /** Renders a proportional bar using filled/empty block characters. */
 function renderBar(ratio: number): string {
-  const filled = Math.round(ratio * BAR_WIDTH);
+  const clamped = Math.max(0, Math.min(1, ratio));
+  const filled = Math.round(clamped * BAR_WIDTH);
   const empty = BAR_WIDTH - filled;
   return "█".repeat(filled) + "░".repeat(empty);
 }
@@ -66,13 +67,27 @@ function statusLabel(status: BudgetStatus, model: ModelInfo, utilization: number
  * @param multiModel - Optional multi-model budget check for the status section.
  * @returns A ready-to-print string (includes newlines and ANSI color codes).
  */
+export type SortKey = "tokens" | "files" | "name";
+
 export function renderTerminal(
   result: BudgetResult,
   topN: number,
   multiModel?: Array<{ model: ModelInfo; utilization: number; status: BudgetStatus }>,
+  sort: SortKey = "tokens",
 ): string {
   const lines: string[] = [];
-  const { model, totalTokens, totalFiles, utilization, directories, files } = result;
+  const { model, totalTokens, totalFiles, utilization } = result;
+
+  // Apply sort
+  const directories = [...result.directories].sort((a, b) => {
+    if (sort === "name") return a.path.localeCompare(b.path);
+    if (sort === "files") return b.files - a.files;
+    return b.tokens - a.tokens;
+  });
+  const files = [...result.files].sort((a, b) => {
+    if (sort === "name") return a.relativePath.localeCompare(b.relativePath);
+    return b.tokens - a.tokens;
+  });
 
   lines.push("");
   lines.push(chalk.bold("  ctxlens") + chalk.dim(" — Token Budget Analyzer"));
@@ -87,7 +102,7 @@ export function renderTerminal(
   // Top directories
   lines.push(chalk.dim("  ── Top directories by token count ") + chalk.dim("─".repeat(30)));
   lines.push("");
-  const topDirs = directories.slice(0, topN);
+  const topDirs = topN === 0 ? directories : directories.slice(0, topN);
   const maxDirTokens = topDirs[0]?.tokens ?? 1;
   for (const dir of topDirs) {
     const ratio = dir.tokens / maxDirTokens;
@@ -101,7 +116,7 @@ export function renderTerminal(
   // Top files
   lines.push(chalk.dim("  ── Largest files ") + chalk.dim("─".repeat(46)));
   lines.push("");
-  const topFiles = files.slice(0, topN);
+  const topFiles = topN === 0 ? files : files.slice(0, topN);
   for (const file of topFiles) {
     const pct = ((file.tokens / totalTokens) * 100).toFixed(1);
     const name = file.relativePath.padEnd(40);
@@ -202,7 +217,7 @@ export function renderCompare(
     return bDiff - aDiff;
   });
 
-  const topEntries = sorted.slice(0, topN);
+  const topEntries = topN === 0 ? sorted : sorted.slice(0, topN);
 
   for (const entry of topEntries) {
     const name = `  ${entry.relativePath}`.padEnd(40).slice(0, 40);

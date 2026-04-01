@@ -13,6 +13,7 @@ import { budgetCommand } from "./budget.js";
 import { optimizeCommand } from "./optimize.js";
 import { watchCommand } from "./watch.js";
 import { diffCommand } from "./diff.js";
+import { initCommand } from "./init.js";
 import { VERSION } from "../utils/version.js";
 
 const program = new Command()
@@ -25,6 +26,7 @@ program.addCommand(budgetCommand);
 program.addCommand(optimizeCommand);
 program.addCommand(watchCommand);
 program.addCommand(diffCommand);
+program.addCommand(initCommand);
 program.addCommand(modelsCommand);
 
 program.parse();

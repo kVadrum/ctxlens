@@ -16,7 +16,7 @@ import { getModel, getAllModels, registerCustomModels } from "../core/models.js"
 import { computeBudget, checkMultiModelBudget } from "../core/budget.js";
 import type { FileTokenInfo } from "../core/budget.js";
 import { renderTerminal, renderCompare } from "../output/terminal.js";
-import type { CompareEntry } from "../output/terminal.js";
+import type { CompareEntry, SortKey } from "../output/terminal.js";
 import { renderJson } from "../output/json.js";
 import { renderHtml } from "../output/html.js";
 import type { HtmlCompareEntry } from "../output/html.js";
@@ -32,7 +32,8 @@ export const scanCommand = new Command("scan")
   .argument("[path]", "directory to scan", ".")
   .option("-m, --model <name>", "target model for budget calculation", "claude-sonnet-4-6")
   .option("-d, --depth <n>", "directory tree depth for summary", "3")
-  .option("-t, --top <n>", "show top N files/dirs", "10")
+  .option("-s, --sort <key>", "sort by: tokens, files, name", "tokens")
+  .option("-t, --top <n>", "show top N files/dirs (0 = all)", "10")
   .option("--ignore <patterns...>", "additional ignore patterns")
   .option("--no-gitignore", "don't respect .gitignore")
   .option("--json", "output JSON instead of terminal display")
@@ -44,6 +45,7 @@ export const scanCommand = new Command("scan")
   .option("--strip-comments", "strip comments before tokenizing")
   .option("--strip-whitespace", "collapse excess whitespace before tokenizing")
   .option("--ci [threshold]", "exit non-zero if utilization exceeds threshold (default: 100%)")
+  .option("-o, --output <file>", "write output to a file instead of stdout")
   .action(async (path: string, opts) => {
     const rootPath = resolve(path);
     const config = loadConfig(rootPath);
@@ -67,12 +69,19 @@ export const scanCommand = new Command("scan")
     const exclude = opts.exclude ?? [];
 
     // Discover files
+    const showProgress = !opts.json && !opts.quiet && !opts.ci && !opts.output;
     const files = scanDirectory(rootPath, {
       respectGitignore: opts.gitignore !== false,
       extraIgnore,
       include,
       exclude,
+      onProgress: showProgress
+        ? (count) => process.stdout.write(`\r  Scanning... ${count} files`)
+        : undefined,
     });
+    if (showProgress && files.length >= 100) {
+      process.stdout.write(`\r  Scanning... ${files.length} files\n`);
+    }
 
     // Tokenize each file (optionally stripping comments/whitespace first)
     const fileTokens: FileTokenInfo[] = files.map((f) => {
@@ -150,11 +159,20 @@ export const scanCommand = new Command("scan")
       return;
     }
 
+    function emit(text: string): void {
+      if (opts.output) {
+        writeFileSync(resolve(opts.output), text, "utf-8");
+        console.log(`Output written to ${opts.output}`);
+      } else {
+        console.log(text);
+      }
+    }
+
     if (opts.ci) {
       // CI mode: output JSON for machine consumption, exit 1 if over threshold
       const ciThreshold = opts.ci === true ? 100 : parseInt(opts.ci, 10);
       const pct = result.utilization * 100;
-      console.log(renderJson(result, basename(rootPath)));
+      emit(renderJson(result, basename(rootPath)));
       freeEncoders();
       if (pct > ciThreshold) {
         console.error(`Budget exceeded: ${pct.toFixed(1)}% > ${ciThreshold}% threshold`);
@@ -164,14 +182,14 @@ export const scanCommand = new Command("scan")
     }
 
     if (opts.json) {
-      console.log(renderJson(result, basename(rootPath)));
+      emit(renderJson(result, basename(rootPath)));
     } else if (opts.quiet) {
       const pct = (result.utilization * 100).toFixed(1);
-      console.log(`${formatTokens(result.totalTokens)} tokens (${pct}% of ${model.id}) — ${result.status}`);
+      emit(`${formatTokens(result.totalTokens)} tokens (${pct}% of ${model.id}) — ${result.status}`);
     } else {
       const allModels = getAllModels();
       const multiModel = checkMultiModelBudget(result.totalTokens, allModels);
-      console.log(renderTerminal(result, topN, multiModel));
+      emit(renderTerminal(result, topN, multiModel, opts.sort as SortKey));
     }
 
     freeEncoders();

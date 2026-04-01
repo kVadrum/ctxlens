@@ -15,7 +15,7 @@ import { getModel, registerCustomModels } from "../core/models.js";
 import { loadConfig } from "../utils/config.js";
 import { stripComments, stripWhitespace } from "../core/stripper.js";
 import { formatTokens } from "../utils/format.js";
-import { getChangedFiles } from "../core/git.js";
+import { getChangedFiles, getFilesAtRef, getFileContentAtRef } from "../core/git.js";
 
 interface FileDelta {
   relativePath: string;
@@ -30,6 +30,7 @@ export const diffCommand = new Command("diff")
   .option("-m, --model <name>", "target model for tokenization", "claude-sonnet-4-6")
   .option("--strip-comments", "compare current vs comment-stripped")
   .option("--strip-whitespace", "compare current vs whitespace-collapsed")
+  .option("--ref <ref>", "compare current tokens to a git ref (e.g. HEAD~1, main)")
   .action(async (path: string, opts) => {
     const rootPath = resolve(path);
     const config = loadConfig(rootPath);
@@ -47,6 +48,7 @@ export const diffCommand = new Command("diff")
     }
 
     const isStripMode = opts.stripComments || opts.stripWhitespace;
+    const isRefMode = !!opts.ref;
 
     const files = scanDirectory(rootPath, {
       respectGitignore: true,
@@ -56,24 +58,46 @@ export const diffCommand = new Command("diff")
     });
 
     let deltas: FileDelta[];
+    let modeLabel = "";
 
     if (isStripMode) {
-      // Compare original vs stripped tokens
+      modeLabel = "stripping";
       deltas = files.map((f) => {
         const before = countTokens(f.content, model.tokenizer);
         let stripped = f.content;
         if (opts.stripComments) stripped = stripComments(stripped);
         if (opts.stripWhitespace) stripped = stripWhitespace(stripped);
         const after = countTokens(stripped, model.tokenizer);
-        return {
-          relativePath: f.relativePath,
-          before,
-          after,
-          delta: after - before,
-        };
+        return { relativePath: f.relativePath, before, after, delta: after - before };
       });
+    } else if (isRefMode) {
+      modeLabel = `vs ${opts.ref}`;
+      // Build a map of current file tokens
+      const currentMap = new Map<string, number>();
+      for (const f of files) {
+        currentMap.set(f.relativePath, countTokens(f.content, model.tokenizer));
+      }
+
+      // Get files at the ref
+      const refFiles = getFilesAtRef(rootPath, opts.ref);
+      const allPaths = new Set([...currentMap.keys(), ...refFiles]);
+
+      deltas = [];
+      for (const p of allPaths) {
+        const after = currentMap.get(p) ?? 0;
+        let before = 0;
+        if (refFiles.includes(p)) {
+          const content = getFileContentAtRef(rootPath, opts.ref, p);
+          if (content !== null) {
+            before = countTokens(content, model.tokenizer);
+          }
+        }
+        if (before !== after) {
+          deltas.push({ relativePath: p, before, after, delta: after - before });
+        }
+      }
     } else {
-      // Compare changed files only (git working tree changes)
+      modeLabel = "changed files";
       const changedPaths = new Set(getChangedFiles(rootPath));
       if (changedPaths.size === 0) {
         console.log(chalk.dim("\n  No changed files found.\n"));
@@ -84,15 +108,7 @@ export const diffCommand = new Command("diff")
       const changedFiles = files.filter((f) => changedPaths.has(f.relativePath));
       deltas = changedFiles.map((f) => {
         const current = countTokens(f.content, model.tokenizer);
-        // We show current token count — delta from zero since we can't
-        // get the previous version without git show (which would need
-        // the file content from HEAD). Show as informational.
-        return {
-          relativePath: f.relativePath,
-          before: 0,
-          after: current,
-          delta: current,
-        };
+        return { relativePath: f.relativePath, before: 0, after: current, delta: current };
       });
     }
 
@@ -108,11 +124,11 @@ export const diffCommand = new Command("diff")
     console.log("");
     console.log(
       chalk.bold("  ctxlens diff") +
-        chalk.dim(` — ${deltas.length} files, ${model.id}`),
+        chalk.dim(` — ${modeLabel}, ${deltas.length} files, ${model.id}`),
     );
     console.log("");
 
-    if (isStripMode) {
+    if (isStripMode || isRefMode) {
       if (meaningful.length === 0) {
         console.log(chalk.dim("  No token savings from stripping.\n"));
         freeEncoders();
@@ -121,29 +137,39 @@ export const diffCommand = new Command("diff")
 
       for (const d of meaningful.slice(0, 20)) {
         const sign = d.delta < 0 ? chalk.green(`${d.delta}`) : chalk.red(`+${d.delta}`);
+        const arrow = d.delta < 0 ? chalk.green("→") : chalk.red("→");
         const name = d.relativePath.padEnd(40);
-        console.log(`  ${name} ${formatTokens(d.before).padStart(8)} → ${formatTokens(d.after).padStart(8)}  ${sign}`);
+        console.log(`  ${name} ${formatTokens(d.before).padStart(8)} ${arrow} ${formatTokens(d.after).padStart(8)}  ${sign}`);
+      }
+
+      if (meaningful.length > 20) {
+        console.log(chalk.dim(`  ... and ${meaningful.length - 20} more files`));
       }
 
       console.log("");
       const totalSign = totalDelta < 0 ? chalk.green(`${totalDelta}`) : chalk.red(`+${totalDelta}`);
+      const totalArrow = totalDelta < 0 ? chalk.green("→") : chalk.red("→");
       console.log(
-        `  ${chalk.bold("Total:")} ${formatTokens(totalBefore)} → ${formatTokens(totalAfter)}  (${totalSign} tokens)`,
+        `  ${chalk.bold("Total:")} ${formatTokens(totalBefore)} ${totalArrow} ${formatTokens(totalAfter)}  (${totalSign} tokens)`,
       );
       if (totalDelta < 0) {
         const pct = ((Math.abs(totalDelta) / totalBefore) * 100).toFixed(1);
-        console.log(chalk.green(`  Saves ${pct}% of tokens`));
+        console.log(chalk.green.bold(`  ✓ Saves ${pct}% of tokens`));
       }
     } else {
       // Git changed files mode
       for (const d of meaningful.slice(0, 20)) {
         const name = d.relativePath.padEnd(40);
-        console.log(`  ${name} ${formatTokens(d.after).padStart(8)} tokens`);
+        console.log(`  ${chalk.yellow("~")} ${name} ${chalk.bold(formatTokens(d.after).padStart(8))} tokens`);
+      }
+
+      if (meaningful.length > 20) {
+        console.log(chalk.dim(`  ... and ${meaningful.length - 20} more files`));
       }
 
       console.log("");
       console.log(
-        `  ${chalk.bold("Changed files total:")} ${formatTokens(totalAfter)} tokens`,
+        `  ${chalk.bold("Changed files total:")} ${chalk.yellow(formatTokens(totalAfter))} tokens`,
       );
     }
 
