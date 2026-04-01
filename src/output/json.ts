@@ -17,7 +17,7 @@ import type { BudgetResult } from "../core/budget.js";
 export function renderJson(result: BudgetResult, repositoryName: string): string {
   return JSON.stringify(
     {
-      version: "0.2.0",
+      version: "0.3.0",
       repository: repositoryName,
       scannedAt: new Date().toISOString(),
       totalFiles: result.totalFiles,
