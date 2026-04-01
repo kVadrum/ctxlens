@@ -25,6 +25,9 @@ runs:
       uses: actions/setup-node@v4
       with:
         node-version: '18'
-    - name: Run ctxlens
+    - name: Install ctxlens
       shell: bash
-      run: npx ctxlens@latest scan "${{ inputs.path }}" --model "${{ inputs.model }}" --ci "${{ inputs.threshold }}"
+      run: npm install -g ctxlens@latest
+    - name: Run token budget check
+      shell: bash
+      run: ctxlens scan "${{ inputs.path }}" --model "${{ inputs.model }}" --ci "${{ inputs.threshold }}"
