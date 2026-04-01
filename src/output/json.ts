@@ -7,6 +7,7 @@
 
 import type { BudgetResult } from "../core/budget.js";
 import { VERSION } from "../utils/version.js";
+import { formatTimestamp } from "../utils/format.js";
 
 /**
  * Renders a budget result as a formatted JSON string.
@@ -20,7 +21,7 @@ export function renderJson(result: BudgetResult, repositoryName: string): string
     {
       version: VERSION,
       repository: repositoryName,
-      scannedAt: new Date().toISOString(),
+      scannedAt: formatTimestamp(),
       totalFiles: result.totalFiles,
       totalTokens: result.totalTokens,
       model: result.model.id,

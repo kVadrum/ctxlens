@@ -381,7 +381,7 @@ The `--json` flag produces structured output for CI pipelines and scripting:
 {
   "version": "1.1.0",
   "repository": "my-project",
-  "scannedAt": "2026-04-01T14:22:00Z",
+  "scannedAt": "04.01.2026 | 14:22:00",
   "totalFiles": 847,
   "totalTokens": 623418,
   "model": "claude-sonnet-4-6",
