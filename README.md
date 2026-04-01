@@ -315,7 +315,7 @@ The `--json` flag produces structured output suitable for CI pipelines:
 
 ```json
 {
-  "version": "0.4.0",
+  "version": "1.0.0",
   "repository": "my-project",
   "scannedAt": "2026-04-01T14:22:00Z",
   "totalFiles": 847,

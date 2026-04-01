@@ -11,6 +11,9 @@ import { readFileSync, readdirSync, statSync } from "node:fs";
 import { join, relative } from "node:path";
 import ignore, { type Ignore } from "ignore";
 
+/** Maximum file size to read (10 MB). Larger files are skipped. */
+const MAX_FILE_SIZE = 10 * 1024 * 1024;
+
 /** Patterns ignored by default — binaries, build output, deps, media. */
 const DEFAULT_IGNORE = [
   // Dependencies & environments
@@ -185,6 +188,7 @@ export function scanDirectory(
         walk(fullPath);
       } else if (stat.isFile()) {
         if (includeFilter && !includeFilter.ignores(rel)) continue;
+        if (stat.size > MAX_FILE_SIZE) continue;
 
         try {
           const buffer = readFileSync(fullPath);

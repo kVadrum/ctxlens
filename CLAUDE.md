@@ -4,7 +4,7 @@
 CLI tool that scans a codebase, tokenizes every file, and reports how the project maps to AI model context windows. Like `du` for tokens.
 
 ## Status
-v0.4.0 — full-featured CLI with 6 commands, HTML reports, CI mode, and 46 tests.
+v1.0.0 — public release. 6 commands, HTML reports, CI mode, 47 tests.
 
 ## Stack
 - TypeScript (ESM, Node 18+)
