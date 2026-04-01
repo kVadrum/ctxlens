@@ -1,0 +1,10 @@
+name: Token Budget Check
+on: [pull_request]
+jobs:
+  budget:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./
+        with:
+          threshold: 90
