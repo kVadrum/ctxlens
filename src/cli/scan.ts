@@ -12,15 +12,17 @@ import { execFileSync } from "node:child_process";
 import { Command } from "commander";
 import { scanDirectory } from "../core/scanner.js";
 import { countTokens, freeEncoders } from "../core/tokenizer.js";
-import { getModel, getAllModels } from "../core/models.js";
+import { getModel, getAllModels, registerCustomModels } from "../core/models.js";
 import { computeBudget, checkMultiModelBudget } from "../core/budget.js";
 import type { FileTokenInfo } from "../core/budget.js";
 import { renderTerminal, renderCompare } from "../output/terminal.js";
 import type { CompareEntry } from "../output/terminal.js";
 import { renderJson } from "../output/json.js";
 import { renderHtml } from "../output/html.js";
+import type { HtmlCompareEntry } from "../output/html.js";
 import { loadConfig } from "../utils/config.js";
 import { stripComments, stripWhitespace } from "../core/stripper.js";
+import { formatTokens } from "../utils/format.js";
 
 /** The available tokenizer encodings to compare. */
 const COMPARE_ENCODINGS = ["cl100k_base", "o200k_base"];
@@ -30,7 +32,6 @@ export const scanCommand = new Command("scan")
   .argument("[path]", "directory to scan", ".")
   .option("-m, --model <name>", "target model for budget calculation", "claude-sonnet-4-6")
   .option("-d, --depth <n>", "directory tree depth for summary", "3")
-  .option("-s, --sort <key>", "sort by: tokens, files, name", "tokens")
   .option("-t, --top <n>", "show top N files/dirs", "10")
   .option("--ignore <patterns...>", "additional ignore patterns")
   .option("--no-gitignore", "don't respect .gitignore")
@@ -42,9 +43,11 @@ export const scanCommand = new Command("scan")
   .option("--report", "generate an HTML report and open in browser")
   .option("--strip-comments", "strip comments before tokenizing")
   .option("--strip-whitespace", "collapse excess whitespace before tokenizing")
+  .option("--ci [threshold]", "exit non-zero if utilization exceeds threshold (default: 100%)")
   .action(async (path: string, opts) => {
     const rootPath = resolve(path);
     const config = loadConfig(rootPath);
+    registerCustomModels(config);
 
     // Resolve model: CLI flag > env var > config > default
     const modelId =
@@ -104,7 +107,17 @@ export const scanCommand = new Command("scan")
     if (opts.report) {
       const allModels = getAllModels();
       const multiModel = checkMultiModelBudget(result.totalTokens, allModels);
-      const html = renderHtml(result, basename(rootPath), multiModel);
+      const compareEntries: HtmlCompareEntry[] = files.map((f) => {
+        const tokenCounts: Record<string, number> = {};
+        for (const enc of COMPARE_ENCODINGS) {
+          tokenCounts[enc] = countTokens(f.content, enc);
+        }
+        return { relativePath: f.relativePath, tokenCounts };
+      });
+      const html = renderHtml(result, basename(rootPath), multiModel, {
+        entries: compareEntries,
+        encodings: COMPARE_ENCODINGS,
+      });
       const reportPath = join(rootPath, "ctxlens-report.html");
       writeFileSync(reportPath, html, "utf-8");
       console.log(`Report saved to ${reportPath}`);
@@ -137,17 +150,24 @@ export const scanCommand = new Command("scan")
       return;
     }
 
+    if (opts.ci) {
+      // CI mode: output JSON for machine consumption, exit 1 if over threshold
+      const ciThreshold = opts.ci === true ? 100 : parseInt(opts.ci, 10);
+      const pct = result.utilization * 100;
+      console.log(renderJson(result, basename(rootPath)));
+      freeEncoders();
+      if (pct > ciThreshold) {
+        console.error(`Budget exceeded: ${pct.toFixed(1)}% > ${ciThreshold}% threshold`);
+        process.exit(1);
+      }
+      return;
+    }
+
     if (opts.json) {
       console.log(renderJson(result, basename(rootPath)));
     } else if (opts.quiet) {
-      const totalFormatted =
-        result.totalTokens >= 1_000_000
-          ? `${(result.totalTokens / 1_000_000).toFixed(1)}M`
-          : result.totalTokens >= 1_000
-            ? `${(result.totalTokens / 1_000).toFixed(1)}k`
-            : String(result.totalTokens);
       const pct = (result.utilization * 100).toFixed(1);
-      console.log(`${totalFormatted} tokens (${pct}% of ${model.id}) — ${result.status}`);
+      console.log(`${formatTokens(result.totalTokens)} tokens (${pct}% of ${model.id}) — ${result.status}`);
     } else {
       const allModels = getAllModels();
       const multiModel = checkMultiModelBudget(result.totalTokens, allModels);

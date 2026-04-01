@@ -9,13 +9,7 @@
 import { Command } from "commander";
 import chalk from "chalk";
 import { getAllModels } from "../core/models.js";
-
-/** Formats a raw token count for the model table (e.g. "200k", "1M"). */
-function formatTokens(n: number): string {
-  if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(0)}M`;
-  if (n >= 1_000) return `${(n / 1_000).toFixed(0)}k`;
-  return String(n);
-}
+import { formatTokens } from "../utils/format.js";
 
 export const modelsCommand = new Command("models")
   .description("List supported models with context window sizes")

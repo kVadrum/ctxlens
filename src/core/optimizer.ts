@@ -141,13 +141,14 @@ export function analyze(
       const commentRatio = estimateCommentRatio(content);
       if (commentRatio >= COMMENT_RATIO_THRESHOLD && file.tokens > 200) {
         const commentPct = (commentRatio * 100).toFixed(0);
+        const saveable = Math.round(file.tokens * commentRatio);
         suggestions.push({
           severity: "optimization",
           file: file.relativePath,
           tokens: file.tokens,
-          message: `~${commentPct}% of this file is comments`,
+          message: `~${commentPct}% comments — could save ~${saveable} tokens when sending to AI`,
           detail:
-            "Strip comments for AI context with: ctxlens budget --strip-comments",
+            "Use --strip-comments to remove comments before tokenizing: ctxlens scan --strip-comments",
         });
       }
     }

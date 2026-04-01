@@ -47,6 +47,41 @@ ctxlens scan --json
 
 # Minimal one-liner — just total tokens and status
 ctxlens scan --quiet
+
+# Interactive HTML report with treemap visualization
+ctxlens scan --report
+```
+
+### CI mode
+
+Use `--ci` to fail a build when token budget exceeds a threshold:
+
+```bash
+# Fail if utilization exceeds 100% (default)
+ctxlens scan --ci
+
+# Fail if utilization exceeds 80%
+ctxlens scan --ci 80
+
+# Use in a GitHub Actions workflow
+ctxlens scan --model claude-sonnet-4-6 --ci 90
+```
+
+Outputs JSON for machine consumption and exits with code 1 if the threshold is exceeded.
+
+### Token diff
+
+Show the token impact of stripping comments or whitespace:
+
+```bash
+# How many tokens would you save by stripping comments?
+ctxlens diff --strip-comments
+
+# Strip both comments and whitespace
+ctxlens diff --strip-comments --strip-whitespace
+
+# Show token counts of changed files
+ctxlens diff
 ```
 
 ### Filtering files
@@ -64,6 +99,49 @@ ctxlens scan --ignore "docs/" "*.md"
 # Don't respect .gitignore
 ctxlens scan --no-gitignore
 ```
+
+### Compare tokenizers
+
+```bash
+# Side-by-side token counts for cl100k_base vs o200k_base
+ctxlens scan --compare
+```
+
+### Budget strategies
+
+```bash
+# Only count git-modified files
+ctxlens budget --strategy changed
+
+# Only count staged files
+ctxlens budget --strategy staged
+
+# Custom glob patterns
+ctxlens budget --strategy "src/components/**,src/utils/**"
+
+# Simulate without comments
+ctxlens budget --strip-comments --quiet
+```
+
+### Optimization suggestions
+
+```bash
+ctxlens optimize
+```
+
+Flags oversized files, shows potential token savings from stripping comments, reports test file weight, and highlights type-dense files as efficient for AI context.
+
+### Real-time monitoring
+
+```bash
+# Watch with default settings
+ctxlens watch
+
+# Watch with custom threshold
+ctxlens watch --threshold 60
+```
+
+Re-scans on file changes and shows a live status line. Press Ctrl+C to stop.
 
 ### List supported models
 
@@ -99,10 +177,11 @@ ctxlens models
   ✓ Fits in context: claude-sonnet-4-6 (200.0k) — 62.3%
   ✓ Fits in context: gpt-4.1 (1.0M) — 12.5%
   ⚠ Tight fit:      gpt-4o (128.0k) — 97.5%
-  ✗ Exceeds:        (models with smaller windows)
 ```
 
 ## Supported models
+
+22 models across 7 providers:
 
 | Model | Provider | Context Window | Tokenizer |
 |-------|----------|---------------|-----------|
@@ -131,6 +210,16 @@ ctxlens models
 
 \* Approximation — these models use different tokenizers natively. Token counts may vary ±10–15%.
 
+You can also define custom models in `.ctxlensrc`:
+
+```json
+{
+  "customModels": {
+    "my-finetuned": { "contextWindow": 32000, "tokenizer": "cl100k_base" }
+  }
+}
+```
+
 ## CLI reference
 
 ### `ctxlens scan [path]`
@@ -141,7 +230,6 @@ Scan a directory and report token counts.
 |------|-------------|---------|
 | `-m, --model <name>` | Target model for budget calculation | `claude-sonnet-4-6` |
 | `-d, --depth <n>` | Directory tree depth for aggregation | `3` |
-| `-s, --sort <key>` | Sort by: `tokens`, `files`, `name` | `tokens` |
 | `-t, --top <n>` | Show top N files/directories | `10` |
 | `--ignore <patterns...>` | Additional ignore patterns | — |
 | `--no-gitignore` | Don't respect .gitignore | — |
@@ -153,24 +241,11 @@ Scan a directory and report token counts.
 | `--report` | Generate interactive HTML report | — |
 | `--strip-comments` | Strip comments before tokenizing | — |
 | `--strip-whitespace` | Collapse excess whitespace before tokenizing | — |
+| `--ci [threshold]` | Exit non-zero if utilization exceeds threshold | `100` |
 
 ### `ctxlens budget [path]`
 
 Simulate context strategies against a model budget.
-
-```bash
-# Only count git-modified files
-ctxlens budget --strategy changed
-
-# Only count staged files
-ctxlens budget --strategy staged
-
-# Custom glob patterns
-ctxlens budget --strategy "src/components/**,src/utils/**"
-
-# Simulate without comments
-ctxlens budget --strip-comments --quiet
-```
 
 | Flag | Description | Default |
 |------|-------------|---------|
@@ -187,33 +262,30 @@ ctxlens budget --strip-comments --quiet
 
 Analyze the codebase and suggest ways to reduce token usage.
 
-```bash
-ctxlens optimize
-```
+### `ctxlens diff [path]`
 
-Flags oversized files, comment-heavy files, test file weight, and highlights type-dense files as efficient for AI context inclusion.
+Show token impact of changes or stripping.
+
+| Flag | Description | Default |
+|------|-------------|---------|
+| `-m, --model <name>` | Target model for tokenization | `claude-sonnet-4-6` |
+| `--strip-comments` | Compare current vs comment-stripped | — |
+| `--strip-whitespace` | Compare current vs whitespace-collapsed | — |
+
+Without strip flags, shows token counts of git-changed files.
 
 ### `ctxlens watch [path]`
 
 Monitor token budget in real-time during development.
 
-```bash
-# Watch with default settings
-ctxlens watch
-
-# Watch with custom threshold
-ctxlens watch --threshold 60
-```
-
-Re-scans on file changes and shows a live status line. Press Ctrl+C to stop.
+| Flag | Description | Default |
+|------|-------------|---------|
+| `-m, --model <name>` | Target model | `claude-sonnet-4-6` |
+| `--threshold <pct>` | Warn when utilization exceeds this percentage | `80` |
 
 ### `ctxlens models`
 
 List all supported models with their context window sizes and tokenizers.
-
-### `ctxlens --version`
-
-Print the current version.
 
 ## How it works
 
@@ -223,7 +295,7 @@ Print the current version.
 
 3. **Budget** — Token counts are aggregated per file and per directory, then compared against the target model's context window. Status thresholds: **fits** (≤ 80%), **tight** (80–100%), **exceeds** (> 100%).
 
-4. **Render** — Results are formatted for the selected output mode (terminal, JSON, or quiet).
+4. **Render** — Results are formatted for the selected output mode (terminal, JSON, HTML, or quiet).
 
 ## What's ignored by default
 
@@ -243,7 +315,7 @@ The `--json` flag produces structured output suitable for CI pipelines:
 
 ```json
 {
-  "version": "0.3.0",
+  "version": "0.4.0",
   "repository": "my-project",
   "scannedAt": "2026-04-01T14:22:00Z",
   "totalFiles": 847,
@@ -280,17 +352,16 @@ Create a `.ctxlensrc` file in your project root (or add a `"ctxlens"` key to `pa
   "ignore": ["*.generated.ts", "coverage/"],
   "include": ["src/", "tests/"],
   "depth": 4,
-  "top": 15
+  "top": 15,
+  "customModels": {
+    "my-finetuned": { "contextWindow": 32000, "tokenizer": "cl100k_base" }
+  }
 }
 ```
 
 You can also set the `CTXLENS_MODEL` environment variable to override the default model.
 
 Priority: CLI flag > `CTXLENS_MODEL` env var > `.ctxlensrc` > default
-
-## Roadmap
-
-- **0.4.0** — GitHub Action for CI (fail PR if budget exceeds threshold), multi-tokenizer comparison in HTML report, `.ctxlensrc` custom model definitions
 
 ## Requirements
 

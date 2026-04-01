@@ -10,6 +10,7 @@
 import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
+import type { CtxlensConfig } from "../utils/config.js";
 
 /** A single AI model's metadata relevant to token budget analysis. */
 export interface ModelInfo {
@@ -35,6 +36,7 @@ const __dirname = dirname(fileURLToPath(import.meta.url));
 const registryPath = join(__dirname, "../../models/registry.json");
 
 let cached: Registry | null = null;
+let customModels: ModelInfo[] = [];
 
 function loadRegistry(): Registry {
   if (!cached) {
@@ -43,9 +45,27 @@ function loadRegistry(): Registry {
   return cached;
 }
 
-/** Returns all models defined in the registry. */
+/**
+ * Registers custom model definitions from .ctxlensrc config.
+ * Custom models override built-in models with the same ID.
+ */
+export function registerCustomModels(config: CtxlensConfig): void {
+  if (!config.customModels) return;
+  customModels = Object.entries(config.customModels).map(([id, def]) => ({
+    id,
+    name: id,
+    provider: "Custom",
+    contextWindow: def.contextWindow,
+    tokenizer: def.tokenizer,
+  }));
+}
+
+/** Returns all models (built-in + custom). Custom models override built-in by ID. */
 export function getAllModels(): ModelInfo[] {
-  return loadRegistry().models;
+  const builtIn = loadRegistry().models;
+  if (customModels.length === 0) return builtIn;
+  const customIds = new Set(customModels.map((m) => m.id));
+  return [...builtIn.filter((m) => !customIds.has(m.id)), ...customModels];
 }
 
 /** Looks up a model by its ID. Returns `undefined` if not found. */

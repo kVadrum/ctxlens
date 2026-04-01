@@ -12,16 +12,11 @@ import { Command } from "commander";
 import chalk from "chalk";
 import { scanDirectory } from "../core/scanner.js";
 import { countTokens, freeEncoders } from "../core/tokenizer.js";
-import { getModel, getAllModels } from "../core/models.js";
+import { getModel, getAllModels, registerCustomModels } from "../core/models.js";
 import { computeBudget, checkMultiModelBudget } from "../core/budget.js";
 import type { FileTokenInfo, BudgetStatus } from "../core/budget.js";
 import { loadConfig } from "../utils/config.js";
-
-function formatTokens(n: number): string {
-  if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(1)}M`;
-  if (n >= 1_000) return `${(n / 1_000).toFixed(1)}k`;
-  return String(n);
-}
+import { formatTokens } from "../utils/format.js";
 
 function statusIcon(status: BudgetStatus): string {
   switch (status) {
@@ -47,6 +42,7 @@ export const watchCommand = new Command("watch")
   .action(async (path: string, opts) => {
     const rootPath = resolve(path);
     const config = loadConfig(rootPath);
+    registerCustomModels(config);
 
     const modelId =
       opts.model !== "claude-sonnet-4-6"

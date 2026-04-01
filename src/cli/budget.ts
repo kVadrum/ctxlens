@@ -10,7 +10,7 @@ import { resolve, basename } from "node:path";
 import { Command } from "commander";
 import { scanDirectory } from "../core/scanner.js";
 import { countTokens, freeEncoders } from "../core/tokenizer.js";
-import { getModel, getAllModels } from "../core/models.js";
+import { getModel, getAllModels, registerCustomModels } from "../core/models.js";
 import { computeBudget, checkMultiModelBudget } from "../core/budget.js";
 import type { FileTokenInfo } from "../core/budget.js";
 import { getChangedFiles, getStagedFiles } from "../core/git.js";
@@ -18,6 +18,7 @@ import { renderTerminal } from "../output/terminal.js";
 import { renderJson } from "../output/json.js";
 import { loadConfig } from "../utils/config.js";
 import { stripComments, stripWhitespace } from "../core/stripper.js";
+import { formatTokens } from "../utils/format.js";
 
 export const budgetCommand = new Command("budget")
   .description("Simulate context strategies against a model budget")
@@ -37,6 +38,7 @@ export const budgetCommand = new Command("budget")
   .action(async (path: string, opts) => {
     const rootPath = resolve(path);
     const config = loadConfig(rootPath);
+    registerCustomModels(config);
 
     const modelId =
       opts.model !== "claude-sonnet-4-6"
@@ -88,8 +90,8 @@ export const budgetCommand = new Command("budget")
         };
       });
 
-      const depth = parseInt(opts.depth, 10);
-      const topN = parseInt(opts.top, 10);
+      const depth = parseInt(opts.depth !== "3" ? opts.depth : String(config.depth ?? 3), 10);
+      const topN = parseInt(opts.top !== "10" ? opts.top : String(config.top ?? 10), 10);
       const result = computeBudget(fileTokens, model, depth);
 
       renderOutput(result, rootPath, opts, topN);
@@ -120,8 +122,8 @@ export const budgetCommand = new Command("budget")
       };
     });
 
-    const depth = parseInt(opts.depth, 10);
-    const topN = parseInt(opts.top, 10);
+    const depth = parseInt(opts.depth !== "3" ? opts.depth : String(config.depth ?? 3), 10);
+    const topN = parseInt(opts.top !== "10" ? opts.top : String(config.top ?? 10), 10);
     const result = computeBudget(fileTokens, model, depth);
 
     renderOutput(result, rootPath, opts, topN);
@@ -137,14 +139,8 @@ function renderOutput(
   if (opts.json) {
     console.log(renderJson(result, basename(rootPath)));
   } else if (opts.quiet) {
-    const totalFormatted =
-      result.totalTokens >= 1_000_000
-        ? `${(result.totalTokens / 1_000_000).toFixed(1)}M`
-        : result.totalTokens >= 1_000
-          ? `${(result.totalTokens / 1_000).toFixed(1)}k`
-          : String(result.totalTokens);
     const pct = (result.utilization * 100).toFixed(1);
-    console.log(`${totalFormatted} tokens (${pct}% of ${result.model.id}) — ${result.status}`);
+    console.log(`${formatTokens(result.totalTokens)} tokens (${pct}% of ${result.model.id}) — ${result.status}`);
   } else {
     const allModels = getAllModels();
     const multiModel = checkMultiModelBudget(result.totalTokens, allModels);

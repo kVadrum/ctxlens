@@ -6,6 +6,7 @@
  */
 
 import type { BudgetResult } from "../core/budget.js";
+import { VERSION } from "../utils/version.js";
 
 /**
  * Renders a budget result as a formatted JSON string.
@@ -17,7 +18,7 @@ import type { BudgetResult } from "../core/budget.js";
 export function renderJson(result: BudgetResult, repositoryName: string): string {
   return JSON.stringify(
     {
-      version: "0.3.0",
+      version: VERSION,
       repository: repositoryName,
       scannedAt: new Date().toISOString(),
       totalFiles: result.totalFiles,

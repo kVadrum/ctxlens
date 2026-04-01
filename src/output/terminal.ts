@@ -12,16 +12,10 @@ import chalk from "chalk";
 import type { BudgetResult } from "../core/budget.js";
 import type { ModelInfo } from "../core/models.js";
 import type { BudgetStatus } from "../core/budget.js";
+import { formatTokens } from "../utils/format.js";
 
 /** Width of the bar chart in characters. */
 const BAR_WIDTH = 18;
-
-/** Formats a raw token count into a human-readable string (e.g. 1.2k, 3.5M). */
-function formatTokens(n: number): string {
-  if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(1)}M`;
-  if (n >= 1_000) return `${(n / 1_000).toFixed(1)}k`;
-  return String(n);
-}
 
 /** Renders a proportional bar using filled/empty block characters. */
 function renderBar(ratio: number): string {
