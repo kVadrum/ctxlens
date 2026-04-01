@@ -1,11 +1,18 @@
+/**
+ * `ctxlens scan` command.
+ *
+ * The core command — scans a directory, tokenizes every file, and reports
+ * token counts with a budget analysis against a target model. Supports
+ * terminal (default), JSON, and quiet output modes.
+ */
+
 import { resolve, basename } from "node:path";
 import { Command } from "commander";
 import { scanDirectory } from "../core/scanner.js";
 import { countTokens, freeEncoders } from "../core/tokenizer.js";
-import { getModel, getDefaultModel } from "../core/models.js";
+import { getModel, getAllModels } from "../core/models.js";
 import { computeBudget, checkMultiModelBudget } from "../core/budget.js";
 import type { FileTokenInfo } from "../core/budget.js";
-import { getAllModels } from "../core/models.js";
 import { renderTerminal } from "../output/terminal.js";
 import { renderJson } from "../output/json.js";
 
@@ -31,6 +38,7 @@ export const scanCommand = new Command("scan")
       process.exit(1);
     }
 
+    // Discover files
     const files = scanDirectory(rootPath, {
       respectGitignore: opts.gitignore !== false,
       extraIgnore: opts.ignore ?? [],
@@ -38,6 +46,7 @@ export const scanCommand = new Command("scan")
       exclude: opts.exclude ?? [],
     });
 
+    // Tokenize each file
     const fileTokens: FileTokenInfo[] = files.map((f) => ({
       relativePath: f.relativePath,
       tokens: countTokens(f.content, model.tokenizer),
@@ -48,6 +57,7 @@ export const scanCommand = new Command("scan")
     const topN = parseInt(opts.top, 10);
     const result = computeBudget(fileTokens, model, depth);
 
+    // Render output in the requested format
     if (opts.json) {
       console.log(renderJson(result, basename(rootPath)));
     } else if (opts.quiet) {

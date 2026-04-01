@@ -1,22 +1,36 @@
+/**
+ * Rich terminal renderer for ctxlens.
+ *
+ * Produces colored, scannable output designed for a developer sitting in their
+ * terminal. Includes bar charts for directory breakdown, a ranked file list,
+ * and a multi-model budget status section with fit/tight/exceeds indicators.
+ *
+ * Visual design references: tokei (code stats), dust (disk usage), bat (file viewer).
+ */
+
 import chalk from "chalk";
 import type { BudgetResult } from "../core/budget.js";
 import type { ModelInfo } from "../core/models.js";
 import type { BudgetStatus } from "../core/budget.js";
 
+/** Width of the bar chart in characters. */
 const BAR_WIDTH = 18;
 
+/** Formats a raw token count into a human-readable string (e.g. 1.2k, 3.5M). */
 function formatTokens(n: number): string {
   if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(1)}M`;
   if (n >= 1_000) return `${(n / 1_000).toFixed(1)}k`;
   return String(n);
 }
 
+/** Renders a proportional bar using filled/empty block characters. */
 function renderBar(ratio: number): string {
   const filled = Math.round(ratio * BAR_WIDTH);
   const empty = BAR_WIDTH - filled;
   return "█".repeat(filled) + "░".repeat(empty);
 }
 
+/** Returns a colored status icon for the given budget status. */
 function statusIcon(status: BudgetStatus): string {
   switch (status) {
     case "fits":
@@ -28,6 +42,7 @@ function statusIcon(status: BudgetStatus): string {
   }
 }
 
+/** Formats a single line of the budget status section for one model. */
 function statusLabel(status: BudgetStatus, model: ModelInfo, utilization: number): string {
   const name = model.id;
   const window = formatTokens(model.contextWindow);
@@ -43,6 +58,20 @@ function statusLabel(status: BudgetStatus, model: ModelInfo, utilization: number
   }
 }
 
+/**
+ * Renders a complete terminal report from a budget analysis result.
+ *
+ * Output sections:
+ * 1. Header — tool name, target model, file count, total tokens
+ * 2. Top directories — bar chart showing token distribution by directory
+ * 3. Largest files — ranked list of individual files by token count
+ * 4. Budget status — per-model fit/tight/exceeds indicators
+ *
+ * @param result     - The budget analysis result to render.
+ * @param topN       - How many entries to show in the top dirs/files lists.
+ * @param multiModel - Optional multi-model budget check for the status section.
+ * @returns A ready-to-print string (includes newlines and ANSI color codes).
+ */
 export function renderTerminal(
   result: BudgetResult,
   topN: number,

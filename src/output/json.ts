@@ -1,5 +1,19 @@
+/**
+ * JSON output renderer for ctxlens.
+ *
+ * Produces machine-readable output for CI pipelines, scripting, and piping
+ * to other tools. Activated via `ctxlens scan --json`.
+ */
+
 import type { BudgetResult } from "../core/budget.js";
 
+/**
+ * Renders a budget result as a formatted JSON string.
+ *
+ * @param result         - The budget analysis result to serialize.
+ * @param repositoryName - Name of the scanned repository (used as a label).
+ * @returns Pretty-printed JSON string.
+ */
 export function renderJson(result: BudgetResult, repositoryName: string): string {
   return JSON.stringify(
     {

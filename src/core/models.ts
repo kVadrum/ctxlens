@@ -1,13 +1,29 @@
+/**
+ * Model registry for ctxlens.
+ *
+ * Loads model definitions (name, provider, context window size, tokenizer)
+ * from `models/registry.json`. The registry is data-driven — adding a model
+ * means adding a JSON entry, not writing code. The file is loaded once and
+ * cached for the process lifetime.
+ */
+
 import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
 
+/** A single AI model's metadata relevant to token budget analysis. */
 export interface ModelInfo {
+  /** Unique identifier used in CLI flags (e.g. "claude-sonnet-4-6"). */
   id: string;
+  /** Human-readable display name (e.g. "Claude Sonnet 4.6"). */
   name: string;
+  /** Model provider (e.g. "Anthropic", "OpenAI"). */
   provider: string;
+  /** Maximum context window size in tokens. */
   contextWindow: number;
+  /** Tiktoken encoding name used for this model (e.g. "cl100k_base"). */
   tokenizer: string;
+  /** Optional note when the tokenizer is an approximation (non-native). */
   tokenizerNote?: string;
 }
 
@@ -27,14 +43,17 @@ function loadRegistry(): Registry {
   return cached;
 }
 
+/** Returns all models defined in the registry. */
 export function getAllModels(): ModelInfo[] {
   return loadRegistry().models;
 }
 
+/** Looks up a model by its ID. Returns `undefined` if not found. */
 export function getModel(id: string): ModelInfo | undefined {
   return getAllModels().find((m) => m.id === id);
 }
 
+/** Returns the default model used when no `--model` flag is provided. */
 export function getDefaultModel(): ModelInfo {
   return getModel("claude-sonnet-4-6")!;
 }
