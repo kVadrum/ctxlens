@@ -402,8 +402,8 @@ The `--json` flag produces structured output for CI pipelines and scripting:
 ### Using the published action
 
 ```yaml
-# .github/workflows/token-budget.yml
-name: Token Budget Check
+# .github/workflows/context-check.yml
+name: Context Check
 on: [pull_request]
 jobs:
   budget:

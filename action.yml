@@ -1,5 +1,5 @@
-name: 'ctxlens Token Budget Check'
-description: 'Check if your codebase fits within AI model context windows'
+name: 'ctxlens Context Check'
+description: 'Verify your codebase fits within AI model context windows'
 branding:
   icon: 'eye'
   color: 'purple'

@@ -1,4 +1,4 @@
-name: Token Budget Check
+name: Context Check
 on: [pull_request]
 jobs:
   budget:
