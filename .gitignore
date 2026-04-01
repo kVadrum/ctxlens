@@ -4,4 +4,5 @@ dist/
 .env.*
 *.log
 .DS_Store
+CLAUDE.md
 ctxlens-report.html
