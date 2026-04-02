@@ -9,6 +9,16 @@ export function formatTokens(n: number): string {
   return String(n);
 }
 
+/** Formats an API input cost in USD (e.g. "$0.04", "$1.23", "<$0.01"). */
+export function formatCost(tokens: number, pricePerMillion: number): string {
+  if (!Number.isFinite(tokens) || !Number.isFinite(pricePerMillion) || tokens < 0 || pricePerMillion < 0) {
+    return "N/A";
+  }
+  const cost = (tokens / 1_000_000) * pricePerMillion;
+  if (cost < 0.005) return "<$0.01";
+  return `$${cost.toFixed(2)}`;
+}
+
 /** Formats a Date as "MM.DD.YYYY | HH:MM:SS". */
 export function formatTimestamp(d: Date = new Date()): string {
   const pad = (n: number) => String(n).padStart(2, "0");

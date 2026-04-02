@@ -12,7 +12,7 @@ import chalk from "chalk";
 import type { BudgetResult } from "../core/budget.js";
 import type { ModelInfo } from "../core/models.js";
 import type { BudgetStatus } from "../core/budget.js";
-import { formatTokens } from "../utils/format.js";
+import { formatTokens, formatCost } from "../utils/format.js";
 
 /** Width of the bar chart in characters. */
 const BAR_WIDTH = 18;
@@ -74,6 +74,7 @@ export function renderTerminal(
   topN: number,
   multiModel?: Array<{ model: ModelInfo; utilization: number; status: BudgetStatus }>,
   sort: SortKey = "tokens",
+  showCost: boolean = false,
 ): string {
   const lines: string[] = [];
   const { model, totalTokens, totalFiles, utilization } = result;
@@ -97,6 +98,9 @@ export function renderTerminal(
   lines.push(
     `  Total tokens: ${chalk.bold(formatTokens(totalTokens))} (${(utilization * 100).toFixed(1)}% of context window)`,
   );
+  if (showCost && model.inputPrice) {
+    lines.push(`  Est. input cost: ${chalk.bold(formatCost(totalTokens, model.inputPrice))}`);
+  }
   lines.push("");
 
   // Top directories

@@ -28,6 +28,8 @@ export const diffCommand = new Command("diff")
   .description("Show token impact of changes or stripping")
   .argument("[path]", "directory to analyze", ".")
   .option("-m, --model <name>", "target model for tokenization", "claude-sonnet-4-6")
+  .option("--include <patterns...>", "only include matching files")
+  .option("--exclude <patterns...>", "exclude matching files")
   .option("--strip-comments", "compare current vs comment-stripped")
   .option("--strip-whitespace", "compare current vs whitespace-collapsed")
   .option("--ref <ref>", "compare current tokens to a git ref (e.g. HEAD~1, main)")
@@ -58,8 +60,8 @@ export const diffCommand = new Command("diff")
     const files = scanDirectory(rootPath, {
       respectGitignore: true,
       extraIgnore: config.ignore ?? [],
-      include: config.include ?? [],
-      exclude: [],
+      include: opts.include ?? config.include ?? [],
+      exclude: [...(config.exclude ?? []), ...(opts.exclude ?? [])],
     });
 
     let deltas: FileDelta[];

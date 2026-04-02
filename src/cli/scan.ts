@@ -22,7 +22,7 @@ import { renderHtml } from "../output/html.js";
 import type { HtmlCompareEntry } from "../output/html.js";
 import { loadConfig } from "../utils/config.js";
 import { stripComments, stripWhitespace } from "../core/stripper.js";
-import { formatTokens } from "../utils/format.js";
+import { formatTokens, formatCost } from "../utils/format.js";
 
 /** The available tokenizer encodings to compare. */
 const COMPARE_ENCODINGS = ["cl100k_base", "o200k_base"];
@@ -45,6 +45,7 @@ export const scanCommand = new Command("scan")
   .option("--strip-comments", "strip comments before tokenizing")
   .option("--strip-whitespace", "collapse excess whitespace before tokenizing")
   .option("--ci [threshold]", "exit non-zero if utilization exceeds threshold (default: 100%)")
+  .option("--cost", "show estimated API input cost for the target model")
   .option("-o, --output <file>", "write output to a file instead of stdout")
   .action(async (path: string, opts) => {
     const rootPath = resolve(path);
@@ -66,7 +67,7 @@ export const scanCommand = new Command("scan")
     // Merge config with CLI options (CLI wins)
     const extraIgnore = [...(config.ignore ?? []), ...(opts.ignore ?? [])];
     const include = opts.include ?? config.include ?? [];
-    const exclude = opts.exclude ?? [];
+    const exclude = [...(config.exclude ?? []), ...(opts.exclude ?? [])];
 
     // Discover files
     const showProgress = !opts.json && !opts.quiet && !opts.ci && !opts.output;
@@ -178,7 +179,7 @@ export const scanCommand = new Command("scan")
       // CI mode: output JSON for machine consumption, exit 1 if over threshold
       const ciThreshold = opts.ci === true ? 100 : parseInt(opts.ci, 10);
       const pct = result.utilization * 100;
-      emit(renderJson(result, basename(rootPath)));
+      emit(renderJson(result, basename(rootPath), opts.cost));
       freeEncoders();
       if (pct > ciThreshold) {
         console.error(`Budget exceeded: ${pct.toFixed(1)}% > ${ciThreshold}% threshold`);
@@ -187,15 +188,23 @@ export const scanCommand = new Command("scan")
       return;
     }
 
+    if (opts.cost && !model.inputPrice) {
+      console.error(`Note: no pricing data for ${model.id} — cost estimate unavailable.`);
+    }
+
     if (opts.json) {
-      emit(renderJson(result, basename(rootPath)));
+      emit(renderJson(result, basename(rootPath), opts.cost));
     } else if (opts.quiet) {
       const pct = (result.utilization * 100).toFixed(1);
-      emit(`${formatTokens(result.totalTokens)} tokens (${pct}% of ${model.id}) — ${result.status}`);
+      let line = `${formatTokens(result.totalTokens)} tokens (${pct}% of ${model.id}) — ${result.status}`;
+      if (opts.cost && model.inputPrice) {
+        line += ` — ${formatCost(result.totalTokens, model.inputPrice)} input cost`;
+      }
+      emit(line);
     } else {
       const allModels = getAllModels();
       const multiModel = checkMultiModelBudget(result.totalTokens, allModels);
-      emit(renderTerminal(result, topN, multiModel, opts.sort as SortKey));
+      emit(renderTerminal(result, topN, multiModel, opts.sort as SortKey, opts.cost));
     }
 
     freeEncoders();

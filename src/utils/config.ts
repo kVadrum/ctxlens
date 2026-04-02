@@ -19,6 +19,8 @@ export interface CtxlensConfig {
   ignore?: string[];
   /** Include-only patterns. */
   include?: string[];
+  /** Exclude patterns (stacked on top of ignore). */
+  exclude?: string[];
   /** Default directory tree depth. */
   depth?: number;
   /** Default number of top entries to show. */
@@ -29,6 +31,7 @@ export interface CtxlensConfig {
     {
       contextWindow: number;
       tokenizer: string;
+      inputPrice?: number;
     }
   >;
 }
@@ -41,7 +44,12 @@ export function loadConfig(rootPath: string): CtxlensConfig {
   // Try .ctxlensrc first
   try {
     const raw = readFileSync(join(rootPath, ".ctxlensrc"), "utf-8");
-    return JSON.parse(raw) as CtxlensConfig;
+    try {
+      return JSON.parse(raw) as CtxlensConfig;
+    } catch {
+      console.error("Warning: .ctxlensrc contains invalid JSON — using default config.");
+      return {};
+    }
   } catch {
     // no .ctxlensrc — try package.json
   }

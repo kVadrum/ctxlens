@@ -16,7 +16,12 @@ import { formatTimestamp } from "../utils/format.js";
  * @param repositoryName - Name of the scanned repository (used as a label).
  * @returns Pretty-printed JSON string.
  */
-export function renderJson(result: BudgetResult, repositoryName: string): string {
+export function renderJson(result: BudgetResult, repositoryName: string, showCost?: boolean): string {
+  const costInfo = showCost
+    ? result.model.inputPrice != null
+      ? { estimatedInputCost: Math.round((result.totalTokens / 1_000_000) * result.model.inputPrice * 100) / 100 }
+      : { estimatedInputCost: null }
+    : {};
   return JSON.stringify(
     {
       version: VERSION,
@@ -28,6 +33,7 @@ export function renderJson(result: BudgetResult, repositoryName: string): string
       contextWindow: result.model.contextWindow,
       utilization: Math.round(result.utilization * 1000) / 1000,
       status: result.status,
+      ...costInfo,
       directories: result.directories.map((d) => ({
         path: d.path,
         tokens: d.tokens,

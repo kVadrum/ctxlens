@@ -26,6 +26,8 @@ export interface ModelInfo {
   tokenizer: string;
   /** Optional note when the tokenizer is an approximation (non-native). */
   tokenizerNote?: string;
+  /** Input price per 1M tokens in USD. Undefined for open-weight / self-hosted models. */
+  inputPrice?: number;
 }
 
 interface Registry {
@@ -57,6 +59,7 @@ export function registerCustomModels(config: CtxlensConfig): void {
     provider: "Custom",
     contextWindow: def.contextWindow,
     tokenizer: def.tokenizer,
+    ...(def.inputPrice != null ? { inputPrice: def.inputPrice } : {}),
   }));
 }
 

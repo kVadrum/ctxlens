@@ -19,7 +19,7 @@ import { renderTerminal } from "../output/terminal.js";
 import { renderJson } from "../output/json.js";
 import { loadConfig } from "../utils/config.js";
 import { stripComments, stripWhitespace } from "../core/stripper.js";
-import { formatTokens } from "../utils/format.js";
+import { formatTokens, formatCost } from "../utils/format.js";
 
 export const budgetCommand = new Command("budget")
   .description("Simulate context strategies against a model budget")
@@ -32,10 +32,13 @@ export const budgetCommand = new Command("budget")
   )
   .option("-d, --depth <n>", "directory tree depth for summary", "3")
   .option("-t, --top <n>", "show top N files/dirs", "10")
+  .option("--include <patterns...>", "only include matching files")
+  .option("--exclude <patterns...>", "exclude matching files")
   .option("--json", "output JSON instead of terminal display")
   .option("-q, --quiet", "minimal output: just total tokens and budget status")
   .option("--strip-comments", "strip comments before tokenizing")
   .option("--strip-whitespace", "collapse excess whitespace before tokenizing")
+  .option("--cost", "show estimated API input cost for the target model")
   .option("-o, --output <file>", "write output to a file instead of stdout")
   .action(async (path: string, opts) => {
     const rootPath = resolve(path);
@@ -78,7 +81,7 @@ export const budgetCommand = new Command("budget")
         respectGitignore: true,
         extraIgnore: config.ignore ?? [],
         include: patterns,
-        exclude: [],
+        exclude: [...(config.exclude ?? []), ...(opts.exclude ?? [])],
       });
 
       const fileTokens: FileTokenInfo[] = files.map((f) => {
@@ -105,8 +108,8 @@ export const budgetCommand = new Command("budget")
     const allFiles = scanDirectory(rootPath, {
       respectGitignore: true,
       extraIgnore: config.ignore ?? [],
-      include: [],
-      exclude: [],
+      include: opts.include ?? config.include ?? [],
+      exclude: [...(config.exclude ?? []), ...(opts.exclude ?? [])],
     });
 
     const files = strategyFilter
@@ -135,7 +138,7 @@ export const budgetCommand = new Command("budget")
 function renderOutput(
   result: ReturnType<typeof computeBudget>,
   rootPath: string,
-  opts: { json?: boolean; quiet?: boolean; model: string; output?: string },
+  opts: { json?: boolean; quiet?: boolean; cost?: boolean; model: string; output?: string },
   topN: number,
 ): void {
   function emit(text: string): void {
@@ -153,14 +156,22 @@ function renderOutput(
     }
   }
 
+  if (opts.cost && !result.model.inputPrice) {
+    console.error(`Note: no pricing data for ${result.model.id} — cost estimate unavailable.`);
+  }
+
   if (opts.json) {
-    emit(renderJson(result, basename(rootPath)));
+    emit(renderJson(result, basename(rootPath), opts.cost));
   } else if (opts.quiet) {
     const pct = (result.utilization * 100).toFixed(1);
-    emit(`${formatTokens(result.totalTokens)} tokens (${pct}% of ${result.model.id}) — ${result.status}`);
+    let line = `${formatTokens(result.totalTokens)} tokens (${pct}% of ${result.model.id}) — ${result.status}`;
+    if (opts.cost && result.model.inputPrice) {
+      line += ` — ${formatCost(result.totalTokens, result.model.inputPrice)} input cost`;
+    }
+    emit(line);
   } else {
     const allModels = getAllModels();
     const multiModel = checkMultiModelBudget(result.totalTokens, allModels);
-    emit(renderTerminal(result, topN, multiModel));
+    emit(renderTerminal(result, topN, multiModel, undefined, opts.cost));
   }
 }
