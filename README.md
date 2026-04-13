@@ -156,6 +156,7 @@ ctxlens scan --top 0           # Show all files/directories (no limit)
 | `--report` | Generate interactive HTML report | — |
 | `--strip-comments` | Strip comments before tokenizing | — |
 | `--strip-whitespace` | Collapse whitespace before tokenizing | — |
+| `--cost` | Show estimated API input cost per model | — |
 | `--ci [threshold]` | CI gate — exit non-zero if utilization exceeds threshold (%) | `100` |
 
 ### `ctxlens budget [path]`
@@ -179,8 +180,11 @@ ctxlens budget --strip-comments --quiet                 # Simulate without comme
 | `-o, --output <file>` | Write output to a file instead of stdout | — |
 | `--json` | JSON output | — |
 | `-q, --quiet` | Minimal output | — |
+| `--include <patterns...>` | Only include matching files | — |
+| `--exclude <patterns...>` | Exclude matching files | — |
 | `--strip-comments` | Strip comments before tokenizing | — |
 | `--strip-whitespace` | Collapse whitespace before tokenizing | — |
+| `--cost` | Show estimated API input cost per model | — |
 
 ### `ctxlens diff [path]`
 
@@ -197,6 +201,8 @@ ctxlens diff --ref HEAD~3                         # Token delta: current vs 3 co
 | Flag | Description | Default |
 |------|-------------|---------|
 | `-m, --model <name>` | Target model for tokenization | `claude-sonnet-4-6` |
+| `--include <patterns...>` | Only include matching files | — |
+| `--exclude <patterns...>` | Exclude matching files | — |
 | `--strip-comments` | Compare current vs comment-stripped | — |
 | `--strip-whitespace` | Compare current vs whitespace-collapsed | — |
 | `--ref <ref>` | Compare current tokens to a git ref (e.g. `HEAD~1`, `main`) | — |
@@ -379,7 +385,7 @@ The `--json` flag produces structured output for CI pipelines and scripting:
 
 ```json
 {
-  "version": "1.1.0",
+  "version": "1.2.0",
   "repository": "my-project",
   "scannedAt": "04.01.2026 | 14:22:00",
   "totalFiles": 847,
