@@ -14,3 +14,6 @@ SPEC-*.md
 SPEC_*.md
 adrs/
 adr/
+ANNOUNCE.md
+ANNOUNCE-*.md
+ANNOUNCE_*.md
