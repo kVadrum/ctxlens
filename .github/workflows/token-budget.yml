@@ -1,5 +1,10 @@
 name: Context Check
 on: [pull_request]
+
+concurrency:
+  group: token-budget-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   budget:
     runs-on: ubuntu-latest
