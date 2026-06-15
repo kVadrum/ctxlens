@@ -21,7 +21,7 @@ describe("model registry", () => {
     const model = getModel("claude-sonnet-4-6");
     expect(model).toBeDefined();
     expect(model!.provider).toBe("Anthropic");
-    expect(model!.contextWindow).toBe(200000);
+    expect(model!.contextWindow).toBe(1000000);
   });
 
   it("returns undefined for unknown model", () => {

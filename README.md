@@ -20,7 +20,7 @@ npx ctxlens scan
 
 ### Problems it solves
 
-- **"Will my project fit in context?"** — Instant answer across 22 models from 7 providers. Know you're safe on Claude, tight on GPT-4o, and blown past Grok — without switching tools.
+- **"Will my project fit in context?"** — Instant answer across 23 models from 7 providers. Know you're safe on Claude, tight on GPT-4o, and blown past Grok — without switching tools.
 - **"Which files are eating my budget?"** — Ranked breakdown by file and directory, with bar charts. Find the token hogs the same way `du` finds disk hogs.
 - **"How much would I save by stripping comments?"** — The `diff` command shows exact token savings before you change anything. Budget simulation, not guesswork.
 - **"Can I gate PRs on context budget?"** — `--ci` flag exits non-zero when a threshold is exceeded. Same pattern as bundle size checks.
@@ -249,7 +249,7 @@ Press Ctrl+C to stop. Uses 300ms debounce to avoid thrashing on rapid saves.
 
 ### `ctxlens models`
 
-List all 22 supported models with context window sizes, tokenizer assignments, and approximation markers.
+List all 23 supported models with context window sizes, tokenizer assignments, and approximation markers.
 
 ```bash
 ctxlens models
@@ -260,7 +260,7 @@ ctxlens models
 ```
   ctxlens — Token Budget Analyzer
 
-  Model: claude-sonnet-4-6 (200.0k tokens)
+  Model: claude-sonnet-4-6 (1.0M tokens)
   Scanned: 847 files
   Total tokens: 623.4k (62.3% of context window)
 
@@ -280,9 +280,9 @@ ctxlens models
 
   ── Budget status ──────────────────────────────────────────────
 
-  ✓ Fits in context: claude-sonnet-4-6 (200.0k) — 62.3%
-  ✓ Fits in context: gpt-4.1 (1.0M) — 12.5%
-  ⚠ Tight fit:      gpt-4o (128.0k) — 97.5%
+  ✓ Fits in context: claude-sonnet-4-6 (1.0M) — 62.3%
+  ✓ Fits in context: gpt-4.1 (1.0M) — 62.3%
+  ✗ Exceeds context: gpt-4o (128.0k) — 487%
 ```
 
 ## HTML report
@@ -297,12 +297,13 @@ ctxlens models
 
 ## Supported models
 
-22 models across 7 providers:
+23 models across 7 providers:
 
 | Model | Provider | Context Window | Tokenizer |
 |-------|----------|---------------|-----------|
-| claude-opus-4-6 | Anthropic | 200k | cl100k_base \* |
-| claude-sonnet-4-6 | Anthropic | 200k | cl100k_base \* |
+| claude-fable-5 | Anthropic | 1M | cl100k_base \* |
+| claude-opus-4-8 | Anthropic | 1M | cl100k_base \* |
+| claude-sonnet-4-6 | Anthropic | 1M | cl100k_base \* |
 | claude-haiku-4-5 | Anthropic | 200k | cl100k_base \* |
 | gpt-5.4 | OpenAI | 1M | o200k_base |
 | gpt-5.4-mini | OpenAI | 1M | o200k_base |
@@ -363,7 +364,7 @@ Create a `.ctxlensrc` file in your project root, or add a `"ctxlens"` key to `pa
 
 ```json
 {
-  "defaultModel": "claude-opus-4-6",
+  "defaultModel": "claude-opus-4-8",
   "ignore": ["*.generated.ts", "coverage/"],
   "include": ["src/", "tests/"],
   "depth": 4,
@@ -459,7 +460,7 @@ ctxlens uses [@dqbd/tiktoken](https://github.com/dqbd/tiktoken) (WASM) for all t
 
 **Every non-OpenAI model in the registry — including Claude — is an approximation.** ctxlens does not embed any native non-tiktoken tokenizer; every one of these models is tokenized through cl100k_base as a proxy. The models table marks them with `\*`, and `models/registry.json` carries a `tokenizerNote` per model. What each provider actually uses natively:
 
-- **Anthropic (Claude 3-generation)** — ~65k-vocab BPE; community analysis finds ~70% of its vocabulary overlaps cl100k_base, which is why cl100k works as a tolerable proxy here. Claude 4+ may use a different tokenizer; treat counts as indicative, not authoritative.
+- **Anthropic (Claude)** — the current Claude 4.x models (Opus 4.7+, Opus 4.8, Sonnet 4.6, Fable 5) use Anthropic's own BPE, distinct from the older Claude-3-generation tokenizer (~65k-vocab BPE, ~70% cl100k_base overlap). cl100k_base remains a usable proxy for budget planning, but treat counts as indicative, not authoritative — for exact counts use Anthropic's `count_tokens` API.
 - **Google (Gemini)** — SentencePiece.
 - **Meta (Llama 3/4)** — 128k-vocab tiktoken-style BPE. Structurally close to o200k_base, but ctxlens maps it to cl100k_base for simplicity.
 - **xAI (Grok)** — 131k-vocab BPE implemented via the SentencePiece framework (Llama 2-style).

@@ -1,21 +1,30 @@
 {
   "models": [
     {
-      "id": "claude-opus-4-6",
-      "name": "Claude Opus 4.6",
+      "id": "claude-fable-5",
+      "name": "Claude Fable 5",
       "provider": "Anthropic",
-      "contextWindow": 200000,
+      "contextWindow": 1000000,
       "tokenizer": "cl100k_base",
-      "tokenizerNote": "approximation — Anthropic's ~65k-vocab BPE (~70% vocab overlap with cl100k_base)",
-      "inputPrice": 15.00
+      "tokenizerNote": "approximation — Claude 4.x uses its own BPE (introduced with Opus 4.7); cl100k_base is a rough proxy, counts indicative not exact",
+      "inputPrice": 10.00
+    },
+    {
+      "id": "claude-opus-4-8",
+      "name": "Claude Opus 4.8",
+      "provider": "Anthropic",
+      "contextWindow": 1000000,
+      "tokenizer": "cl100k_base",
+      "tokenizerNote": "approximation — Claude 4.x uses its own BPE (introduced with Opus 4.7); cl100k_base is a rough proxy, counts indicative not exact",
+      "inputPrice": 5.00
     },
     {
       "id": "claude-sonnet-4-6",
       "name": "Claude Sonnet 4.6",
       "provider": "Anthropic",
-      "contextWindow": 200000,
+      "contextWindow": 1000000,
       "tokenizer": "cl100k_base",
-      "tokenizerNote": "approximation — Anthropic's ~65k-vocab BPE (~70% vocab overlap with cl100k_base)",
+      "tokenizerNote": "approximation — Claude 4.x uses its own BPE (introduced with Opus 4.7); cl100k_base is a rough proxy, counts indicative not exact",
       "inputPrice": 3.00
     },
     {
@@ -24,8 +33,8 @@
       "provider": "Anthropic",
       "contextWindow": 200000,
       "tokenizer": "cl100k_base",
-      "tokenizerNote": "approximation — Anthropic's ~65k-vocab BPE (~70% vocab overlap with cl100k_base)",
-      "inputPrice": 0.80
+      "tokenizerNote": "approximation — Claude 4.x uses its own BPE (introduced with Opus 4.7); cl100k_base is a rough proxy, counts indicative not exact",
+      "inputPrice": 1.00
     },
     {
       "id": "gpt-5.4",
