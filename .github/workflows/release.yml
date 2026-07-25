@@ -18,9 +18,19 @@ jobs:
       - uses: actions/checkout@v6
       - uses: actions/setup-node@v6
         with:
-          node-version: 20
+          # Node 20 went EOL 2026-04-30 and npm dropped it: npm@12's engines are
+          # `^22.22.2 || ^24.15.0 || >=26.0.0`, so `npm install -g` below exits
+          # EBADENGINE (verified exit 1) and fails the job before publish. 24 is
+          # active LTS and ships npm 11.16, already over the OIDC floor.
+          node-version: 24
           registry-url: 'https://registry.npmjs.org'
           cache: npm
-      - run: npm install -g npm@latest  # OIDC trusted publishing needs npm >= 11.5.1
+      # Floor-pinned, NOT @latest: the requirement is a minimum (OIDC trusted
+      # publishing needs npm >= 11.5.1); `@latest` resolves to the next npm major,
+      # free to drop this runner's Node line — exactly how this broke on Node 20.
+      # Do NOT "realign" to the global reference_npm_oidc_publish_pattern; that
+      # pattern (node 20 + npm@latest) is broken under npm 12 (verified by the
+      # kemek-blocks seat 2026-07-23). This divergence is the fix, not drift.
+      - run: npm install -g npm@^11
       - run: npm ci
       - run: npm publish --provenance --access public
