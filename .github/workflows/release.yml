@@ -32,5 +32,12 @@ jobs:
       # pattern (node 20 + npm@latest) is broken under npm 12 (verified by the
       # kemek-blocks seat 2026-07-23). This divergence is the fix, not drift.
       - run: npm install -g npm@^11
-      - run: npm ci
+      # Job-level `id-token: write` means the OIDC minting endpoint is reachable
+      # during install; --ignore-scripts keeps third-party install scripts away
+      # from it. Free here: esbuild resolves via its @esbuild/linux-x64 prebuilt
+      # (build verified byte-identical by sha256), fsevents is darwin-only. A
+      # future native dep without a linux prebuilt will fail this step loudly —
+      # the fix then is splitting install (no id-token) from publish, not
+      # dropping the flag.
+      - run: npm ci --ignore-scripts
       - run: npm publish --provenance --access public
