@@ -12,7 +12,7 @@ import { execFileSync } from "node:child_process";
 import { Command } from "commander";
 import { scanDirectory } from "../core/scanner.js";
 import { countTokens, freeEncoders } from "../core/tokenizer.js";
-import { getModel, getAllModels, registerCustomModels } from "../core/models.js";
+import { getModel, getAllModels, registerCustomModels, resolveModelId, DEFAULT_MODEL_ID } from "../core/models.js";
 import { computeBudget, checkMultiModelBudget } from "../core/budget.js";
 import type { FileTokenInfo } from "../core/budget.js";
 import { renderTerminal, renderCompare } from "../output/terminal.js";
@@ -30,7 +30,7 @@ const COMPARE_ENCODINGS = ["cl100k_base", "o200k_base"];
 export const scanCommand = new Command("scan")
   .description("Scan a directory and report token counts")
   .argument("[path]", "directory to scan", ".")
-  .option("-m, --model <name>", "target model for budget calculation", "claude-sonnet-5")
+  .option("-m, --model <name>", `target model for budget calculation (default: ${DEFAULT_MODEL_ID})`)
   .option("-d, --depth <n>", "directory tree depth for summary", "3")
   .option("-s, --sort <key>", "sort by: tokens, files, name", "tokens")
   .option("-t, --top <n>", "show top N files/dirs (0 = all)", "10")
@@ -52,11 +52,7 @@ export const scanCommand = new Command("scan")
     const config = loadConfig(rootPath);
     registerCustomModels(config);
 
-    // Resolve model: CLI flag > env var > config > default
-    const modelId =
-      opts.model !== "claude-sonnet-5"
-        ? opts.model
-        : process.env.CTXLENS_MODEL ?? config.defaultModel ?? "claude-sonnet-5";
+    const modelId = resolveModelId(opts.model, config);
     const model = getModel(modelId);
 
     if (!model) {

@@ -10,7 +10,7 @@ import { existsSync, writeFileSync } from "node:fs";
 import { createInterface } from "node:readline";
 import { Command } from "commander";
 import chalk from "chalk";
-import { getAllModels } from "../core/models.js";
+import { getAllModels, DEFAULT_MODEL_ID } from "../core/models.js";
 
 function ask(rl: ReturnType<typeof createInterface>, question: string, defaultVal: string): Promise<string> {
   return new Promise((res) => {
@@ -33,7 +33,7 @@ export const initCommand = new Command("init")
       return;
     }
 
-    let model = "claude-sonnet-5";
+    let model = DEFAULT_MODEL_ID;
     let depth = "3";
     let top = "10";
     let ignorePatterns = "";

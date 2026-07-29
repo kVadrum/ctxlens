@@ -11,7 +11,7 @@ import { Command } from "commander";
 import chalk from "chalk";
 import { scanDirectory } from "../core/scanner.js";
 import { countTokens, freeEncoders } from "../core/tokenizer.js";
-import { getModel, registerCustomModels } from "../core/models.js";
+import { getModel, registerCustomModels, resolveModelId, DEFAULT_MODEL_ID } from "../core/models.js";
 import type { FileTokenInfo } from "../core/budget.js";
 import { analyze } from "../core/optimizer.js";
 import type { Suggestion } from "../core/optimizer.js";
@@ -32,16 +32,13 @@ function severityIcon(severity: Suggestion["severity"]): string {
 export const optimizeCommand = new Command("optimize")
   .description("Analyze codebase and suggest ways to reduce token usage")
   .argument("[path]", "directory to analyze", ".")
-  .option("-m, --model <name>", "target model for tokenization", "claude-sonnet-5")
+  .option("-m, --model <name>", `target model for tokenization (default: ${DEFAULT_MODEL_ID})`)
   .action(async (path: string, opts) => {
     const rootPath = resolve(path);
     const config = loadConfig(rootPath);
     registerCustomModels(config);
 
-    const modelId =
-      opts.model !== "claude-sonnet-5"
-        ? opts.model
-        : process.env.CTXLENS_MODEL ?? config.defaultModel ?? "claude-sonnet-5";
+    const modelId = resolveModelId(opts.model, config);
     const model = getModel(modelId);
 
     if (!model) {

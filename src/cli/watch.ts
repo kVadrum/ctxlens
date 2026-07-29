@@ -12,7 +12,7 @@ import { Command } from "commander";
 import chalk from "chalk";
 import { scanDirectory } from "../core/scanner.js";
 import { countTokens, freeEncoders } from "../core/tokenizer.js";
-import { getModel, getAllModels, registerCustomModels } from "../core/models.js";
+import { getModel, getAllModels, registerCustomModels, resolveModelId, DEFAULT_MODEL_ID } from "../core/models.js";
 import { computeBudget, checkMultiModelBudget } from "../core/budget.js";
 import type { FileTokenInfo, BudgetStatus } from "../core/budget.js";
 import { loadConfig } from "../utils/config.js";
@@ -37,17 +37,14 @@ function statusColor(status: BudgetStatus): typeof chalk {
 export const watchCommand = new Command("watch")
   .description("Monitor token budget in real-time during development")
   .argument("[path]", "directory to watch", ".")
-  .option("-m, --model <name>", "target model for budget calculation", "claude-sonnet-5")
+  .option("-m, --model <name>", `target model for budget calculation (default: ${DEFAULT_MODEL_ID})`)
   .option("--threshold <pct>", "warn when utilization exceeds this percentage", "80")
   .action(async (path: string, opts) => {
     const rootPath = resolve(path);
     const config = loadConfig(rootPath);
     registerCustomModels(config);
 
-    const modelId =
-      opts.model !== "claude-sonnet-5"
-        ? opts.model
-        : process.env.CTXLENS_MODEL ?? config.defaultModel ?? "claude-sonnet-5";
+    const modelId = resolveModelId(opts.model, config);
     const maybeModel = getModel(modelId);
 
     if (!maybeModel) {

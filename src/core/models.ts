@@ -76,7 +76,41 @@ export function getModel(id: string): ModelInfo | undefined {
   return getAllModels().find((m) => m.id === id);
 }
 
+/**
+ * Model used when neither `--model`, `CTXLENS_MODEL`, nor `.ctxlensrc` picks one.
+ *
+ * Canonical home for this ID: every CLI command and `getDefaultModel()` reference
+ * it rather than repeating the literal, so retiring a model from the registry is
+ * a one-line change here instead of an 18-site sweep that silently half-lands.
+ * Must always name a model present in `registry.json` — `getDefaultModel()`
+ * asserts non-null, and `tests/models.test.ts` pins the pair.
+ */
+export const DEFAULT_MODEL_ID = "claude-sonnet-5";
+
 /** Returns the default model used when no `--model` flag is provided. */
 export function getDefaultModel(): ModelInfo {
-  return getModel("claude-sonnet-5")!;
+  return getModel(DEFAULT_MODEL_ID)!;
+}
+
+/**
+ * Resolves the target model ID across all four config layers, highest first:
+ * CLI flag > `CTXLENS_MODEL` > `.ctxlensrc` > {@link DEFAULT_MODEL_ID}.
+ *
+ * Shared by every command that takes `-m/--model` so the precedence order has one
+ * home. It previously lived inline in each, comparing `opts.model` against the
+ * default *value* to detect "flag absent" — which made an explicit
+ * `--model <the-default>` indistinguishable from no flag, so env or config
+ * silently overrode it and the tool budgeted against a model the user had named
+ * outright. `flag` must therefore be `undefined` when absent, never defaulted by
+ * the arg parser.
+ *
+ * `env` is injectable so the precedence can be tested without mutating the real
+ * environment.
+ */
+export function resolveModelId(
+  flag: string | undefined,
+  config: CtxlensConfig,
+  env: NodeJS.ProcessEnv = process.env,
+): string {
+  return flag ?? env.CTXLENS_MODEL ?? config.defaultModel ?? DEFAULT_MODEL_ID;
 }

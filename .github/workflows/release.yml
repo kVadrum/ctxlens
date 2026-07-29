@@ -53,4 +53,13 @@ jobs:
       # the fix then is splitting install (no id-token) from publish, not
       # dropping the flag.
       - run: npm ci --ignore-scripts
+      # The tag guard above closes tag -> package.json, but package.json ->
+      # src/utils/version.ts is asserted only by tests/version.test.ts, which
+      # runs in ci.yml on branch pushes — not here. Nothing stops tagging a
+      # commit whose CI was red or never ran, so without this the tarball can
+      # ship a runtime VERSION that disagrees with the version it published
+      # under. That is not hypothetical: v1.2.8 shipped exactly that desync and
+      # needed v1.2.9 to repair it. Runs against the installed tree, so it also
+      # catches a dep bump that breaks the build under --ignore-scripts.
+      - run: npm test
       - run: npm publish --provenance --access public

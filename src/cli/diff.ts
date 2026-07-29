@@ -11,7 +11,7 @@ import { Command } from "commander";
 import chalk from "chalk";
 import { scanDirectory } from "../core/scanner.js";
 import { countTokens, freeEncoders } from "../core/tokenizer.js";
-import { getModel, registerCustomModels } from "../core/models.js";
+import { getModel, registerCustomModels, resolveModelId, DEFAULT_MODEL_ID } from "../core/models.js";
 import { loadConfig } from "../utils/config.js";
 import { stripComments, stripWhitespace } from "../core/stripper.js";
 import { formatTokens } from "../utils/format.js";
@@ -27,7 +27,7 @@ interface FileDelta {
 export const diffCommand = new Command("diff")
   .description("Show token impact of changes or stripping")
   .argument("[path]", "directory to analyze", ".")
-  .option("-m, --model <name>", "target model for tokenization", "claude-sonnet-5")
+  .option("-m, --model <name>", `target model for tokenization (default: ${DEFAULT_MODEL_ID})`)
   .option("--include <patterns...>", "only include matching files")
   .option("--exclude <patterns...>", "exclude matching files")
   .option("--strip-comments", "compare current vs comment-stripped")
@@ -38,10 +38,7 @@ export const diffCommand = new Command("diff")
     const config = loadConfig(rootPath);
     registerCustomModels(config);
 
-    const modelId =
-      opts.model !== "claude-sonnet-5"
-        ? opts.model
-        : process.env.CTXLENS_MODEL ?? config.defaultModel ?? "claude-sonnet-5";
+    const modelId = resolveModelId(opts.model, config);
     const model = getModel(modelId);
 
     if (!model) {

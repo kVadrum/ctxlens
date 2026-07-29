@@ -11,7 +11,7 @@ import { writeFileSync } from "node:fs";
 import { Command } from "commander";
 import { scanDirectory } from "../core/scanner.js";
 import { countTokens, freeEncoders } from "../core/tokenizer.js";
-import { getModel, getAllModels, registerCustomModels } from "../core/models.js";
+import { getModel, getAllModels, registerCustomModels, resolveModelId, DEFAULT_MODEL_ID } from "../core/models.js";
 import { computeBudget, checkMultiModelBudget } from "../core/budget.js";
 import type { FileTokenInfo } from "../core/budget.js";
 import { getChangedFiles, getStagedFiles } from "../core/git.js";
@@ -24,7 +24,7 @@ import { formatTokens, formatCost } from "../utils/format.js";
 export const budgetCommand = new Command("budget")
   .description("Simulate context strategies against a model budget")
   .argument("[path]", "directory to analyze", ".")
-  .option("-m, --model <name>", "target model for budget calculation", "claude-sonnet-5")
+  .option("-m, --model <name>", `target model for budget calculation (default: ${DEFAULT_MODEL_ID})`)
   .option(
     "-s, --strategy <strategy>",
     "strategy: all, changed, staged, or glob patterns (comma-separated)",
@@ -45,10 +45,7 @@ export const budgetCommand = new Command("budget")
     const config = loadConfig(rootPath);
     registerCustomModels(config);
 
-    const modelId =
-      opts.model !== "claude-sonnet-5"
-        ? opts.model
-        : process.env.CTXLENS_MODEL ?? config.defaultModel ?? "claude-sonnet-5";
+    const modelId = resolveModelId(opts.model, config);
     const model = getModel(modelId);
 
     if (!model) {
