@@ -112,5 +112,28 @@ export function resolveModelId(
   config: CtxlensConfig,
   env: NodeJS.ProcessEnv = process.env,
 ): string {
-  return flag ?? env.CTXLENS_MODEL ?? config.defaultModel ?? DEFAULT_MODEL_ID;
+  // Blank-skipping is load-bearing, not defensive: `??` only guards null and
+  // undefined, so `CTXLENS_MODEL=` (set-but-empty, the shape CI runners produce
+  // for an unset input) would satisfy it and resolve to "", failing every command
+  // with `Unknown model: `. An empty layer means "I have no opinion", not "".
+  const layers = [flag, env.CTXLENS_MODEL, config.defaultModel];
+  return layers.find((v) => v != null && v.trim() !== "")?.trim() ?? DEFAULT_MODEL_ID;
+}
+
+/**
+ * Error text for a `--model` value that isn't in the registry.
+ *
+ * Shared so the five commands can't drift, and so a retired ID gets a usable exit
+ * rather than a dead end: models are curated to the current lineup, so upgrading
+ * can strip an ID that a `.ctxlensrc` written months ago still names. Listing the
+ * same-vendor models turns "Unknown model: claude-sonnet-4-6" into a message that
+ * shows the successor.
+ */
+export function unknownModelMessage(id: string): string {
+  const vendorPrefix = id.split("-")[0]?.toLowerCase() ?? "";
+  const kin = vendorPrefix
+    ? getAllModels().filter((m) => m.id.toLowerCase().startsWith(`${vendorPrefix}-`))
+    : [];
+  const hint = kin.length ? ` Available from the same vendor: ${kin.map((m) => m.id).join(", ")}.` : "";
+  return `Unknown model: ${id || "(empty)"}.${hint} Run 'ctxlens models' to see available models.`;
 }

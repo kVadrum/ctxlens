@@ -11,7 +11,7 @@ import { writeFileSync } from "node:fs";
 import { Command } from "commander";
 import { scanDirectory } from "../core/scanner.js";
 import { countTokens, freeEncoders } from "../core/tokenizer.js";
-import { getModel, getAllModels, registerCustomModels, resolveModelId, DEFAULT_MODEL_ID } from "../core/models.js";
+import { getModel, getAllModels, registerCustomModels, resolveModelId, unknownModelMessage, DEFAULT_MODEL_ID } from "../core/models.js";
 import { computeBudget, checkMultiModelBudget } from "../core/budget.js";
 import type { FileTokenInfo } from "../core/budget.js";
 import { getChangedFiles, getStagedFiles } from "../core/git.js";
@@ -49,7 +49,7 @@ export const budgetCommand = new Command("budget")
     const model = getModel(modelId);
 
     if (!model) {
-      console.error(`Unknown model: ${modelId}. Run 'ctxlens models' to see available models.`);
+      console.error(unknownModelMessage(modelId));
       process.exit(1);
     }
 

@@ -4,6 +4,7 @@ import {
   getModel,
   getDefaultModel,
   resolveModelId,
+  unknownModelMessage,
   DEFAULT_MODEL_ID,
 } from "../src/core/models.js";
 
@@ -71,5 +72,29 @@ describe("model resolution precedence", () => {
 
   it("falls back to the default when no layer supplies one", () => {
     expect(resolveModelId(undefined, {}, {})).toBe(DEFAULT_MODEL_ID);
+  });
+
+  it("treats a set-but-empty layer as no opinion", () => {
+    // `CTXLENS_MODEL=` is what a CI runner produces for an unset input, and `??`
+    // would happily resolve it to "" — failing every command with `Unknown model: `.
+    expect(resolveModelId(undefined, {}, { CTXLENS_MODEL: "" })).toBe(DEFAULT_MODEL_ID);
+    expect(resolveModelId(undefined, { defaultModel: "  " }, {})).toBe(DEFAULT_MODEL_ID);
+    expect(resolveModelId(undefined, { defaultModel: "gpt-4o" }, { CTXLENS_MODEL: "" })).toBe("gpt-4o");
+  });
+});
+
+describe("unknown model message", () => {
+  it("points a retired ID at its same-vendor successors", () => {
+    const msg = unknownModelMessage("claude-sonnet-4-6");
+    expect(msg).toContain("claude-sonnet-5");
+    expect(msg).toContain("Unknown model: claude-sonnet-4-6");
+  });
+
+  it("does not claim an empty ID was requested", () => {
+    expect(unknownModelMessage("")).toContain("(empty)");
+  });
+
+  it("omits the vendor hint when nothing matches", () => {
+    expect(unknownModelMessage("nonexistent-thing")).not.toContain("same vendor");
   });
 });

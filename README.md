@@ -425,15 +425,19 @@ jobs:
       - uses: actions/checkout@v4
       - uses: kVadrum/ctxlens@v1
         with:
-          model: claude-sonnet-5
           threshold: 90
 ```
 
 | Input | Description | Default |
 |-------|-------------|---------|
-| `model` | Target model for budget calculation | `claude-sonnet-5` |
+| `model` | Target model for budget calculation | *(the installed CLI's own default)* |
 | `threshold` | Fail if utilization exceeds this % | `100` |
 | `path` | Directory to scan | `.` |
+
+Leaving `model` unset is the recommended form: the action installs `ctxlens` from
+npm, so pinning a model ID here means pinning one the *published* registry has to
+recognise. Set it only when you want a specific model, and prefer one you can see
+in `ctxlens models` for the version you're installing.
 
 ### Using npx directly
 
