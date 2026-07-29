@@ -44,7 +44,14 @@ export const watchCommand = new Command("watch")
     const config = loadConfig(rootPath);
     registerCustomModels(config);
 
-    const modelId = resolveModelId(opts.model, config);
+    const resolved = resolveModelId(opts.model, config);
+    const modelId = resolved.id;
+    if (resolved.migratedFrom) {
+      // stderr so --json / --quiet stdout stays machine-parseable
+      console.error(
+        `Note: ${resolved.migratedFrom} was retired; using ${modelId} instead. Update your config to silence this.`,
+      );
+    }
     const maybeModel = getModel(modelId);
 
     if (!maybeModel) {

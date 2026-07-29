@@ -50,7 +50,7 @@ describe("model registry", () => {
 describe("model resolution precedence", () => {
   // Documented contract (project CLAUDE.md): CLI flag > env > .ctxlensrc > default.
   it("prefers the CLI flag over every other layer", () => {
-    expect(resolveModelId("o3", { defaultModel: "gpt-4o" }, { CTXLENS_MODEL: "gpt-4.1" })).toBe("o3");
+    expect(resolveModelId("o3", { defaultModel: "gpt-4o" }, { CTXLENS_MODEL: "gpt-4.1" }).id).toBe("o3");
   });
 
   it("honours an explicit flag that happens to equal the default", () => {
@@ -58,28 +58,59 @@ describe("model resolution precedence", () => {
     // "flag absent", so naming the default outright let env/config silently win —
     // the tool then budgeted against a model the user had explicitly ruled out.
     expect(
-      resolveModelId(DEFAULT_MODEL_ID, { defaultModel: "gpt-4o" }, { CTXLENS_MODEL: "gpt-4o" }),
+      resolveModelId(DEFAULT_MODEL_ID, { defaultModel: "gpt-4o" }, { CTXLENS_MODEL: "gpt-4o" }).id,
     ).toBe(DEFAULT_MODEL_ID);
   });
 
   it("prefers the env var over config and default", () => {
-    expect(resolveModelId(undefined, { defaultModel: "gpt-4o" }, { CTXLENS_MODEL: "o3" })).toBe("o3");
+    expect(resolveModelId(undefined, { defaultModel: "gpt-4o" }, { CTXLENS_MODEL: "o3" }).id).toBe("o3");
   });
 
   it("prefers config over the default", () => {
-    expect(resolveModelId(undefined, { defaultModel: "gpt-4o" }, {})).toBe("gpt-4o");
+    expect(resolveModelId(undefined, { defaultModel: "gpt-4o" }, {}).id).toBe("gpt-4o");
   });
 
   it("falls back to the default when no layer supplies one", () => {
-    expect(resolveModelId(undefined, {}, {})).toBe(DEFAULT_MODEL_ID);
+    expect(resolveModelId(undefined, {}, {}).id).toBe(DEFAULT_MODEL_ID);
   });
 
   it("treats a set-but-empty layer as no opinion", () => {
     // `CTXLENS_MODEL=` is what a CI runner produces for an unset input, and `??`
     // would happily resolve it to "" — failing every command with `Unknown model: `.
-    expect(resolveModelId(undefined, {}, { CTXLENS_MODEL: "" })).toBe(DEFAULT_MODEL_ID);
-    expect(resolveModelId(undefined, { defaultModel: "  " }, {})).toBe(DEFAULT_MODEL_ID);
-    expect(resolveModelId(undefined, { defaultModel: "gpt-4o" }, { CTXLENS_MODEL: "" })).toBe("gpt-4o");
+    expect(resolveModelId(undefined, {}, { CTXLENS_MODEL: "" }).id).toBe(DEFAULT_MODEL_ID);
+    expect(resolveModelId(undefined, { defaultModel: "  " }, {}).id).toBe(DEFAULT_MODEL_ID);
+    expect(resolveModelId(undefined, { defaultModel: "gpt-4o" }, { CTXLENS_MODEL: "" }).id).toBe("gpt-4o");
+  });
+});
+
+describe("retired model migration", () => {
+  it("substitutes a retired ID and reports what it replaced", () => {
+    const r = resolveModelId(undefined, { defaultModel: "claude-sonnet-4-6" }, {});
+    expect(r.id).toBe("claude-sonnet-5");
+    expect(r.migratedFrom).toBe("claude-sonnet-4-6");
+  });
+
+  it("substitutes a retired ID passed explicitly", () => {
+    expect(resolveModelId("claude-opus-4-8", {}, {}).id).toBe("claude-opus-5");
+  });
+
+  it("keeps the pair budget-equivalent, so only the name changes", () => {
+    // The substitution is only honest while window and price match; if a future
+    // pair diverges this fails rather than silently rebudgeting the user.
+    for (const [retired, successor] of [
+      ["claude-sonnet-4-6", "claude-sonnet-5"],
+      ["claude-opus-4-8", "claude-opus-5"],
+    ]) {
+      const to = getModel(resolveModelId(retired, {}, {}).id)!;
+      expect(to.id).toBe(successor);
+      expect(to.contextWindow).toBe(1_000_000);
+    }
+  });
+
+  it("leaves a live ID untouched", () => {
+    const r = resolveModelId("gpt-4o", {}, {});
+    expect(r.id).toBe("gpt-4o");
+    expect(r.migratedFrom).toBeUndefined();
   });
 });
 

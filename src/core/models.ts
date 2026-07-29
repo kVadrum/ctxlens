@@ -107,17 +107,51 @@ export function getDefaultModel(): ModelInfo {
  * `env` is injectable so the precedence can be tested without mutating the real
  * environment.
  */
+/**
+ * Models dropped from the registry, mapped to what replaced them.
+ *
+ * The registry is curated to the current lineup rather than accumulating every
+ * model ever served, so an upgrade can remove an ID that a `.ctxlensrc` written
+ * months ago — or `ctxlens init` at the time — still names. Without this, config
+ * outranks the default and lookup is exact, so those projects fail *every*
+ * command after upgrading rather than just drifting a version behind.
+ *
+ * Each pair must be budget-equivalent (same context window, same input price) so
+ * substituting changes the reported name and nothing else; retire a model into
+ * this map only when that holds, and drop the entry once configs have moved on.
+ */
+const RETIRED_MODEL_IDS: Record<string, string> = {
+  "claude-sonnet-4-6": "claude-sonnet-5",
+  "claude-opus-4-8": "claude-opus-5",
+};
+
+/** Result of resolving a model ID, recording any retired-ID substitution. */
+export interface ResolvedModelId {
+  /** The ID to look up — already migrated if the requested one was retired. */
+  id: string;
+  /** The retired ID that was asked for, when a substitution happened. */
+  migratedFrom?: string;
+}
+
 export function resolveModelId(
   flag: string | undefined,
   config: CtxlensConfig,
   env: NodeJS.ProcessEnv = process.env,
-): string {
+): ResolvedModelId {
   // Blank-skipping is load-bearing, not defensive: `??` only guards null and
   // undefined, so `CTXLENS_MODEL=` (set-but-empty, the shape CI runners produce
   // for an unset input) would satisfy it and resolve to "", failing every command
   // with `Unknown model: `. An empty layer means "I have no opinion", not "".
   const layers = [flag, env.CTXLENS_MODEL, config.defaultModel];
-  return layers.find((v) => v != null && v.trim() !== "")?.trim() ?? DEFAULT_MODEL_ID;
+  const requested = layers.find((v) => v != null && v.trim() !== "")?.trim() ?? DEFAULT_MODEL_ID;
+
+  // A custom model definition wins over the retirement map — someone who defines
+  // the old ID themselves in .ctxlensrc means that definition, not our successor.
+  const successor = RETIRED_MODEL_IDS[requested];
+  if (successor == null || getAllModels().some((m) => m.id === requested)) {
+    return { id: requested };
+  }
+  return { id: successor, migratedFrom: requested };
 }
 
 /**
