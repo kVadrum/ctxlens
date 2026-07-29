@@ -37,7 +37,7 @@ function statusColor(status: BudgetStatus): typeof chalk {
 export const watchCommand = new Command("watch")
   .description("Monitor token budget in real-time during development")
   .argument("[path]", "directory to watch", ".")
-  .option("-m, --model <name>", "target model for budget calculation", "claude-sonnet-4-6")
+  .option("-m, --model <name>", "target model for budget calculation", "claude-sonnet-5")
   .option("--threshold <pct>", "warn when utilization exceeds this percentage", "80")
   .action(async (path: string, opts) => {
     const rootPath = resolve(path);
@@ -45,9 +45,9 @@ export const watchCommand = new Command("watch")
     registerCustomModels(config);
 
     const modelId =
-      opts.model !== "claude-sonnet-4-6"
+      opts.model !== "claude-sonnet-5"
         ? opts.model
-        : process.env.CTXLENS_MODEL ?? config.defaultModel ?? "claude-sonnet-4-6";
+        : process.env.CTXLENS_MODEL ?? config.defaultModel ?? "claude-sonnet-5";
     const maybeModel = getModel(modelId);
 
     if (!maybeModel) {

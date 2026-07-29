@@ -27,7 +27,7 @@ interface FileDelta {
 export const diffCommand = new Command("diff")
   .description("Show token impact of changes or stripping")
   .argument("[path]", "directory to analyze", ".")
-  .option("-m, --model <name>", "target model for tokenization", "claude-sonnet-4-6")
+  .option("-m, --model <name>", "target model for tokenization", "claude-sonnet-5")
   .option("--include <patterns...>", "only include matching files")
   .option("--exclude <patterns...>", "exclude matching files")
   .option("--strip-comments", "compare current vs comment-stripped")
@@ -39,9 +39,9 @@ export const diffCommand = new Command("diff")
     registerCustomModels(config);
 
     const modelId =
-      opts.model !== "claude-sonnet-4-6"
+      opts.model !== "claude-sonnet-5"
         ? opts.model
-        : process.env.CTXLENS_MODEL ?? config.defaultModel ?? "claude-sonnet-4-6";
+        : process.env.CTXLENS_MODEL ?? config.defaultModel ?? "claude-sonnet-5";
     const model = getModel(modelId);
 
     if (!model) {

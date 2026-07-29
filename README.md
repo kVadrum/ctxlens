@@ -87,7 +87,7 @@ ctxlens init --yes      # Accept all defaults, no prompts
 The core command. Scans a directory, tokenizes every file, and reports token counts with budget analysis.
 
 ```bash
-# Scan current directory (default model: claude-sonnet-4-6)
+# Scan current directory (default model: claude-sonnet-5)
 ctxlens scan
 
 # Scan a specific path against a specific model
@@ -147,7 +147,7 @@ ctxlens scan --top 0           # Show all files/directories (no limit)
 
 | Flag | Description | Default |
 |------|-------------|---------|
-| `-m, --model <name>` | Target model for budget calculation | `claude-sonnet-4-6` |
+| `-m, --model <name>` | Target model for budget calculation | `claude-sonnet-5` |
 | `-d, --depth <n>` | Directory tree depth for aggregation | `3` |
 | `-t, --top <n>` | Show top N files/dirs (`0` = all) | `10` |
 | `-s, --sort <key>` | Sort by: `tokens`, `files`, `name` | `tokens` |
@@ -179,7 +179,7 @@ ctxlens budget --strip-comments --quiet                 # Simulate without comme
 
 | Flag | Description | Default |
 |------|-------------|---------|
-| `-m, --model <name>` | Target model | `claude-sonnet-4-6` |
+| `-m, --model <name>` | Target model | `claude-sonnet-5` |
 | `-s, --strategy <s>` | `all`, `changed`, `staged`, or comma-separated glob patterns | `all` |
 | `-d, --depth <n>` | Directory tree depth | `3` |
 | `-t, --top <n>` | Show top N entries | `10` |
@@ -206,7 +206,7 @@ ctxlens diff --ref HEAD~3                         # Token delta: current vs 3 co
 
 | Flag | Description | Default |
 |------|-------------|---------|
-| `-m, --model <name>` | Target model for tokenization | `claude-sonnet-4-6` |
+| `-m, --model <name>` | Target model for tokenization | `claude-sonnet-5` |
 | `--include <patterns...>` | Only include matching files | — |
 | `--exclude <patterns...>` | Exclude matching files | — |
 | `--strip-comments` | Compare current vs comment-stripped | — |
@@ -229,7 +229,7 @@ ctxlens optimize
 
 | Flag | Description | Default |
 |------|-------------|---------|
-| `-m, --model <name>` | Target model | `claude-sonnet-4-6` |
+| `-m, --model <name>` | Target model | `claude-sonnet-5` |
 
 ### `ctxlens watch [path]`
 
@@ -244,7 +244,7 @@ Press Ctrl+C to stop. Uses 300ms debounce to avoid thrashing on rapid saves.
 
 | Flag | Description | Default |
 |------|-------------|---------|
-| `-m, --model <name>` | Target model | `claude-sonnet-4-6` |
+| `-m, --model <name>` | Target model | `claude-sonnet-5` |
 | `--threshold <pct>` | Warn when utilization exceeds this percentage | `80` |
 
 ### `ctxlens models`
@@ -260,7 +260,7 @@ ctxlens models
 ```
   ctxlens — Token Budget Analyzer
 
-  Model: claude-sonnet-4-6 (1.0M tokens)
+  Model: claude-sonnet-5 (1.0M tokens)
   Scanned: 847 files
   Total tokens: 623.4k (62.3% of context window)
 
@@ -280,7 +280,7 @@ ctxlens models
 
   ── Budget status ──────────────────────────────────────────────
 
-  ✓ Fits in context: claude-sonnet-4-6 (1.0M) — 62.3%
+  ✓ Fits in context: claude-sonnet-5 (1.0M) — 62.3%
   ✓ Fits in context: gpt-4.1 (1.0M) — 62.3%
   ✗ Exceeds context: gpt-4o (128.0k) — 487%
 ```
@@ -302,8 +302,8 @@ ctxlens models
 | Model | Provider | Context Window | Tokenizer |
 |-------|----------|---------------|-----------|
 | claude-fable-5 | Anthropic | 1M | cl100k_base \* |
-| claude-opus-4-8 | Anthropic | 1M | cl100k_base \* |
-| claude-sonnet-4-6 | Anthropic | 1M | cl100k_base \* |
+| claude-opus-5 | Anthropic | 1M | cl100k_base \* |
+| claude-sonnet-5 | Anthropic | 1M | cl100k_base \* |
 | claude-haiku-4-5 | Anthropic | 200k | cl100k_base \* |
 | gpt-5.4 | OpenAI | 1M | o200k_base |
 | gpt-5.4-mini | OpenAI | 1M | o200k_base |
@@ -364,7 +364,7 @@ Create a `.ctxlensrc` file in your project root, or add a `"ctxlens"` key to `pa
 
 ```json
 {
-  "defaultModel": "claude-opus-4-8",
+  "defaultModel": "claude-opus-5",
   "ignore": ["*.generated.ts", "coverage/"],
   "include": ["src/", "tests/"],
   "depth": 4,
@@ -397,7 +397,7 @@ The `--json` flag produces structured output for CI pipelines and scripting:
   "scannedAt": "04.01.2026 | 14:22:00",
   "totalFiles": 847,
   "totalTokens": 623418,
-  "model": "claude-sonnet-4-6",
+  "model": "claude-sonnet-5",
   "contextWindow": 200000,
   "utilization": 0.623,
   "status": "fits",
@@ -425,13 +425,13 @@ jobs:
       - uses: actions/checkout@v4
       - uses: kVadrum/ctxlens@v1
         with:
-          model: claude-sonnet-4-6
+          model: claude-sonnet-5
           threshold: 90
 ```
 
 | Input | Description | Default |
 |-------|-------------|---------|
-| `model` | Target model for budget calculation | `claude-sonnet-4-6` |
+| `model` | Target model for budget calculation | `claude-sonnet-5` |
 | `threshold` | Fail if utilization exceeds this % | `100` |
 | `path` | Directory to scan | `.` |
 
@@ -460,7 +460,8 @@ ctxlens uses [@dqbd/tiktoken](https://github.com/dqbd/tiktoken) (WASM) for all t
 
 **Every non-OpenAI model in the registry — including Claude — is an approximation.** ctxlens does not embed any native non-tiktoken tokenizer; every one of these models is tokenized through cl100k_base as a proxy. The models table marks them with `\*`, and `models/registry.json` carries a `tokenizerNote` per model. What each provider actually uses natively:
 
-- **Anthropic (Claude)** — the current Claude 4.x models (Opus 4.7+, Opus 4.8, Sonnet 4.6, Fable 5) use Anthropic's own BPE, distinct from the older Claude-3-generation tokenizer (~65k-vocab BPE, ~70% cl100k_base overlap). cl100k_base remains a usable proxy for budget planning, but treat counts as indicative, not authoritative — for exact counts use Anthropic's `count_tokens` API.
+- **Anthropic (Claude)** — the current Claude 5 models (Opus 5, Fable 5) and Claude 4.x from Opus 4.7 onward share Anthropic's own BPE, distinct from the older Claude-3-generation tokenizer (~65k-vocab BPE, ~70% cl100k_base overlap). cl100k_base remains a usable proxy for budget planning, but treat counts as indicative, not authoritative — for exact counts use Anthropic's `count_tokens` API.
+  - **Sonnet 5 is the loose end.** It ships a different tokenizer again, running roughly 30% higher than Sonnet 4.6 on identical text. Since Sonnet 5 is also the default model, a `ctxlens scan` with no `--model` flag is the case where cl100k_base drifts furthest from reality — read the number as a floor rather than an estimate, and confirm against `count_tokens` before trusting a near-the-limit fit.
 - **Google (Gemini)** — SentencePiece.
 - **Meta (Llama 3/4)** — 128k-vocab tiktoken-style BPE. Structurally close to o200k_base, but ctxlens maps it to cl100k_base for simplicity.
 - **xAI (Grok)** — 131k-vocab BPE implemented via the SentencePiece framework (Llama 2-style).

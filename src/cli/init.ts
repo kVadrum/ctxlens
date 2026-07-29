@@ -33,7 +33,7 @@ export const initCommand = new Command("init")
       return;
     }
 
-    let model = "claude-sonnet-4-6";
+    let model = "claude-sonnet-5";
     let depth = "3";
     let top = "10";
     let ignorePatterns = "";

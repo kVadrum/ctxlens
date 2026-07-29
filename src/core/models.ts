@@ -14,9 +14,9 @@ import type { CtxlensConfig } from "../utils/config.js";
 
 /** A single AI model's metadata relevant to token budget analysis. */
 export interface ModelInfo {
-  /** Unique identifier used in CLI flags (e.g. "claude-sonnet-4-6"). */
+  /** Unique identifier used in CLI flags (e.g. "claude-sonnet-5"). */
   id: string;
-  /** Human-readable display name (e.g. "Claude Sonnet 4.6"). */
+  /** Human-readable display name (e.g. "Claude Sonnet 5"). */
   name: string;
   /** Model provider (e.g. "Anthropic", "OpenAI"). */
   provider: string;
@@ -78,5 +78,5 @@ export function getModel(id: string): ModelInfo | undefined {
 
 /** Returns the default model used when no `--model` flag is provided. */
 export function getDefaultModel(): ModelInfo {
-  return getModel("claude-sonnet-4-6")!;
+  return getModel("claude-sonnet-5")!;
 }

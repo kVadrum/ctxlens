@@ -32,16 +32,16 @@ function severityIcon(severity: Suggestion["severity"]): string {
 export const optimizeCommand = new Command("optimize")
   .description("Analyze codebase and suggest ways to reduce token usage")
   .argument("[path]", "directory to analyze", ".")
-  .option("-m, --model <name>", "target model for tokenization", "claude-sonnet-4-6")
+  .option("-m, --model <name>", "target model for tokenization", "claude-sonnet-5")
   .action(async (path: string, opts) => {
     const rootPath = resolve(path);
     const config = loadConfig(rootPath);
     registerCustomModels(config);
 
     const modelId =
-      opts.model !== "claude-sonnet-4-6"
+      opts.model !== "claude-sonnet-5"
         ? opts.model
-        : process.env.CTXLENS_MODEL ?? config.defaultModel ?? "claude-sonnet-4-6";
+        : process.env.CTXLENS_MODEL ?? config.defaultModel ?? "claude-sonnet-5";
     const model = getModel(modelId);
 
     if (!model) {

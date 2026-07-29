@@ -6,25 +6,25 @@
       "provider": "Anthropic",
       "contextWindow": 1000000,
       "tokenizer": "cl100k_base",
-      "tokenizerNote": "approximation — Claude 4.x uses its own BPE (introduced with Opus 4.7); cl100k_base is a rough proxy, counts indicative not exact",
+      "tokenizerNote": "approximation — Claude 5 / 4.x use Anthropic's own BPE (introduced with Opus 4.7); cl100k_base is a rough proxy, counts indicative not exact",
       "inputPrice": 10.00
     },
     {
-      "id": "claude-opus-4-8",
-      "name": "Claude Opus 4.8",
+      "id": "claude-opus-5",
+      "name": "Claude Opus 5",
       "provider": "Anthropic",
       "contextWindow": 1000000,
       "tokenizer": "cl100k_base",
-      "tokenizerNote": "approximation — Claude 4.x uses its own BPE (introduced with Opus 4.7); cl100k_base is a rough proxy, counts indicative not exact",
+      "tokenizerNote": "approximation — Claude 5 / 4.x use Anthropic's own BPE (introduced with Opus 4.7); cl100k_base is a rough proxy, counts indicative not exact",
       "inputPrice": 5.00
     },
     {
-      "id": "claude-sonnet-4-6",
-      "name": "Claude Sonnet 4.6",
+      "id": "claude-sonnet-5",
+      "name": "Claude Sonnet 5",
       "provider": "Anthropic",
       "contextWindow": 1000000,
       "tokenizer": "cl100k_base",
-      "tokenizerNote": "approximation — Claude 4.x uses its own BPE (introduced with Opus 4.7); cl100k_base is a rough proxy, counts indicative not exact",
+      "tokenizerNote": "approximation — Sonnet 5 uses a NEW tokenizer that runs ~30% higher than Sonnet 4.6 on the same text; cl100k_base under-counts here more than for other Claude models — treat as a floor, not an estimate",
       "inputPrice": 3.00
     },
     {
@@ -33,7 +33,7 @@
       "provider": "Anthropic",
       "contextWindow": 200000,
       "tokenizer": "cl100k_base",
-      "tokenizerNote": "approximation — Claude 4.x uses its own BPE (introduced with Opus 4.7); cl100k_base is a rough proxy, counts indicative not exact",
+      "tokenizerNote": "approximation — Claude 5 / 4.x use Anthropic's own BPE (introduced with Opus 4.7); cl100k_base is a rough proxy, counts indicative not exact",
       "inputPrice": 1.00
     },
     {

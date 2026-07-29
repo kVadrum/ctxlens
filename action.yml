@@ -8,7 +8,7 @@ inputs:
   model:
     description: 'Target model for budget calculation'
     required: false
-    default: 'claude-sonnet-4-6'
+    default: 'claude-sonnet-5'
   threshold:
     description: 'Fail if utilization exceeds this percentage'
     required: false

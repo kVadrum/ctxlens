@@ -24,7 +24,7 @@ import { formatTokens, formatCost } from "../utils/format.js";
 export const budgetCommand = new Command("budget")
   .description("Simulate context strategies against a model budget")
   .argument("[path]", "directory to analyze", ".")
-  .option("-m, --model <name>", "target model for budget calculation", "claude-sonnet-4-6")
+  .option("-m, --model <name>", "target model for budget calculation", "claude-sonnet-5")
   .option(
     "-s, --strategy <strategy>",
     "strategy: all, changed, staged, or glob patterns (comma-separated)",
@@ -46,9 +46,9 @@ export const budgetCommand = new Command("budget")
     registerCustomModels(config);
 
     const modelId =
-      opts.model !== "claude-sonnet-4-6"
+      opts.model !== "claude-sonnet-5"
         ? opts.model
-        : process.env.CTXLENS_MODEL ?? config.defaultModel ?? "claude-sonnet-4-6";
+        : process.env.CTXLENS_MODEL ?? config.defaultModel ?? "claude-sonnet-5";
     const model = getModel(modelId);
 
     if (!model) {

@@ -18,7 +18,7 @@ describe("model registry", () => {
   });
 
   it("finds a known model by ID", () => {
-    const model = getModel("claude-sonnet-4-6");
+    const model = getModel("claude-sonnet-5");
     expect(model).toBeDefined();
     expect(model!.provider).toBe("Anthropic");
     expect(model!.contextWindow).toBe(1000000);
@@ -30,6 +30,6 @@ describe("model registry", () => {
 
   it("returns default model", () => {
     const model = getDefaultModel();
-    expect(model.id).toBe("claude-sonnet-4-6");
+    expect(model.id).toBe("claude-sonnet-5");
   });
 });
