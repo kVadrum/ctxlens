@@ -92,9 +92,50 @@ export function getDefaultModel(): ModelInfo {
   return getModel(DEFAULT_MODEL_ID)!;
 }
 
+/** A model no longer in the registry, with the numbers it carried when removed. */
+export interface RetiredModel {
+  /** Registry ID substituted in its place. */
+  successor: string;
+  /** Context window the retired model had, in tokens. */
+  contextWindow: number;
+  /** Input price per 1M tokens the retired model had, in USD. */
+  inputPrice?: number;
+}
+
+/**
+ * Models dropped from the registry, mapped to what replaced them.
+ *
+ * The registry is curated to the current lineup rather than accumulating every
+ * model ever served, so an upgrade can remove an ID that a `.ctxlensrc` written
+ * months ago — or `ctxlens init` at the time — still names. Without this, config
+ * outranks the default and lookup is exact, so those projects fail *every*
+ * command after upgrading rather than just drifting a version behind.
+ *
+ * Substituting is only honest while the pair is budget-equivalent, so each entry
+ * records what the retired model actually had rather than asserting equivalence
+ * in prose. `tests/models.test.ts` compares these against the live successor, so
+ * a repricing or a context-window change breaks the build and forces a decision
+ * instead of silently rebudgeting someone. Drop an entry once configs have moved
+ * on; if a pair ever stops matching, restore the real registry entry rather than
+ * relaxing the check.
+ */
+export const RETIRED_MODELS: Record<string, RetiredModel> = {
+  "claude-sonnet-4-6": { successor: "claude-sonnet-5", contextWindow: 1_000_000, inputPrice: 3.0 },
+  "claude-opus-4-8": { successor: "claude-opus-5", contextWindow: 1_000_000, inputPrice: 5.0 },
+};
+
+/** Result of resolving a model ID, recording any retired-ID substitution. */
+export interface ResolvedModelId {
+  /** The ID to look up — already migrated if the requested one was retired. */
+  id: string;
+  /** The retired ID that was asked for, when a substitution happened. */
+  migratedFrom?: string;
+}
+
 /**
  * Resolves the target model ID across all four config layers, highest first:
- * CLI flag > `CTXLENS_MODEL` > `.ctxlensrc` > {@link DEFAULT_MODEL_ID}.
+ * CLI flag > `CTXLENS_MODEL` > `.ctxlensrc` > {@link DEFAULT_MODEL_ID}, then
+ * substitutes any retired ID per {@link RETIRED_MODELS}.
  *
  * Shared by every command that takes `-m/--model` so the precedence order has one
  * home. It previously lived inline in each, comparing `opts.model` against the
@@ -107,32 +148,6 @@ export function getDefaultModel(): ModelInfo {
  * `env` is injectable so the precedence can be tested without mutating the real
  * environment.
  */
-/**
- * Models dropped from the registry, mapped to what replaced them.
- *
- * The registry is curated to the current lineup rather than accumulating every
- * model ever served, so an upgrade can remove an ID that a `.ctxlensrc` written
- * months ago — or `ctxlens init` at the time — still names. Without this, config
- * outranks the default and lookup is exact, so those projects fail *every*
- * command after upgrading rather than just drifting a version behind.
- *
- * Each pair must be budget-equivalent (same context window, same input price) so
- * substituting changes the reported name and nothing else; retire a model into
- * this map only when that holds, and drop the entry once configs have moved on.
- */
-const RETIRED_MODEL_IDS: Record<string, string> = {
-  "claude-sonnet-4-6": "claude-sonnet-5",
-  "claude-opus-4-8": "claude-opus-5",
-};
-
-/** Result of resolving a model ID, recording any retired-ID substitution. */
-export interface ResolvedModelId {
-  /** The ID to look up — already migrated if the requested one was retired. */
-  id: string;
-  /** The retired ID that was asked for, when a substitution happened. */
-  migratedFrom?: string;
-}
-
 export function resolveModelId(
   flag: string | undefined,
   config: CtxlensConfig,
@@ -147,11 +162,11 @@ export function resolveModelId(
 
   // A custom model definition wins over the retirement map — someone who defines
   // the old ID themselves in .ctxlensrc means that definition, not our successor.
-  const successor = RETIRED_MODEL_IDS[requested];
-  if (successor == null || getAllModels().some((m) => m.id === requested)) {
+  const retired = RETIRED_MODELS[requested];
+  if (retired == null || getAllModels().some((m) => m.id === requested)) {
     return { id: requested };
   }
-  return { id: successor, migratedFrom: requested };
+  return { id: retired.successor, migratedFrom: requested };
 }
 
 /**

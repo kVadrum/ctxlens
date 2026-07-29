@@ -5,6 +5,7 @@ import {
   getDefaultModel,
   resolveModelId,
   unknownModelMessage,
+  RETIRED_MODELS,
   DEFAULT_MODEL_ID,
 } from "../src/core/models.js";
 
@@ -94,16 +95,26 @@ describe("retired model migration", () => {
     expect(resolveModelId("claude-opus-4-8", {}, {}).id).toBe("claude-opus-5");
   });
 
-  it("keeps the pair budget-equivalent, so only the name changes", () => {
-    // The substitution is only honest while window and price match; if a future
-    // pair diverges this fails rather than silently rebudgeting the user.
-    for (const [retired, successor] of [
-      ["claude-sonnet-4-6", "claude-sonnet-5"],
-      ["claude-opus-4-8", "claude-opus-5"],
-    ]) {
-      const to = getModel(resolveModelId(retired, {}, {}).id)!;
-      expect(to.id).toBe(successor);
-      expect(to.contextWindow).toBe(1_000_000);
+  it.each(Object.entries(RETIRED_MODELS))(
+    "%s stays budget-equivalent to its successor, so only the name changes",
+    (retiredId, retired) => {
+      // The rail: compares what the retired model actually carried against the
+      // live successor, so a repricing or window change fails here rather than
+      // silently rebudgeting anyone still naming the old ID. If this breaks,
+      // restore the real registry entry — don't relax the assertion.
+      const successor = getModel(retired.successor);
+      expect(successor, `${retired.successor} missing from registry`).toBeDefined();
+      expect(successor!.contextWindow).toBe(retired.contextWindow);
+      expect(successor!.inputPrice).toBe(retired.inputPrice);
+      expect(resolveModelId(retiredId, {}, {}).id).toBe(retired.successor);
+    },
+  );
+
+  it("every retired ID is genuinely absent from the registry", () => {
+    // A retired ID that is still listed would never reach the substitution path,
+    // leaving a stale map entry that reads as load-bearing but does nothing.
+    for (const retiredId of Object.keys(RETIRED_MODELS)) {
+      expect(getModel(retiredId), `${retiredId} is still in the registry`).toBeUndefined();
     }
   });
 
