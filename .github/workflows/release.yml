@@ -25,12 +25,25 @@ jobs:
           node-version: 24
           registry-url: 'https://registry.npmjs.org'
           cache: npm
+      # Runs before any install work so a mismatch costs seconds, not a build.
+      # Without it the tag only selects the *commit*, never the version — npm
+      # publishes whatever package.json says, so tagging v1.2.9 on a tree still
+      # reading 1.2.8 republishes 1.2.8 (or dies on "already exists") while the
+      # tag, and the --provenance attestation bound to it, claim otherwise. That
+      # corrupts the one thing provenance exists to assert. GITHUB_REF_NAME is
+      # read as an env var, not interpolated into the script, so the tag name is
+      # never executable. The floating `v1` tag never reaches here: the trigger
+      # pattern needs two literal dots and `v1` has none (measured, see STATE).
+      - name: Verify tag matches package.json version
+        run: |
+          tag="${GITHUB_REF_NAME#v}"
+          pkg="$(node -p "require('./package.json').version")"
+          echo "tag=$tag package.json=$pkg"
+          [ "$tag" = "$pkg" ] || { echo "::error::tag v$tag does not match package.json version $pkg"; exit 1; }
       # Floor-pinned, NOT @latest: the requirement is a minimum (OIDC trusted
-      # publishing needs npm >= 11.5.1); `@latest` resolves to the next npm major,
-      # free to drop this runner's Node line — exactly how this broke on Node 20.
-      # Do NOT "realign" to the global reference_npm_oidc_publish_pattern; that
-      # pattern (node 20 + npm@latest) is broken under npm 12 (verified by the
-      # kemek-blocks seat 2026-07-23). This divergence is the fix, not drift.
+      # publishing needs npm >= 11.5.1), and `@latest` silently resolves to the
+      # next npm major, which is free to drop this runner's Node line — exactly
+      # how this step broke on Node 20. Pin the floor; never chase the tip.
       - run: npm install -g npm@^11
       # Job-level `id-token: write` means the OIDC minting endpoint is reachable
       # during install; --ignore-scripts keeps third-party install scripts away
