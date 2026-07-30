@@ -327,6 +327,8 @@ ctxlens models
 
 \* Approximation — these models use their own native tokenizers (different from tiktoken). Token counts may vary ±10–15% from native. This is acceptable for budget planning — you're estimating context usage, not calculating billing. See [Tokenizer accuracy](#tokenizer-accuracy) below.
 
+**Prices are list prices.** `--cost` uses each provider's standard published input rate — never promotional, introductory, or volume-tiered pricing. Those expire on a calendar rather than on a model release, so tracking them across seven providers would mean the registry going quietly wrong on a date nobody is watching. If a model you use is currently discounted, ctxlens overestimates — the harmless direction for a budget check.
+
 **Retired model IDs.** The registry tracks the current lineup rather than every model ever shipped, so an upgrade can drop an ID your `.ctxlensrc` still names. Those don't break: a retired ID resolves to its successor and prints a one-line notice on stderr (so `--json` and `--quiet` stdout stay clean). Substitutions are only made between models with the same context window and price, so your numbers don't move — just the reported name. Defining the old ID yourself under `customModels` overrides this and uses your definition.
 
 ### Custom models
