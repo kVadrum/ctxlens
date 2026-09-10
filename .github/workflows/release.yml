@@ -16,7 +16,7 @@ jobs:
       id-token: write
     steps:
       - uses: actions/checkout@v7
-      - uses: actions/setup-node@v6
+      - uses: actions/setup-node@v7
         with:
           # Node 20 went EOL 2026-04-30 and npm dropped it: npm@12's engines are
           # `^22.22.2 || ^24.15.0 || >=26.0.0`, so `npm install -g` below exits
