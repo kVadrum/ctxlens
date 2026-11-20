@@ -59,7 +59,7 @@ npm install -g ctxlens
 npm install --save-dev ctxlens
 ```
 
-Requires Node.js 18+.
+Requires Node.js 22+.
 
 ## Quick start
 
@@ -453,7 +453,7 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
-          node-version: 18
+          node-version: 22
       - run: npx ctxlens scan --ci 90
 ```
 

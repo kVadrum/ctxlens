@@ -33,7 +33,7 @@ runs:
     - name: Setup Node.js
       uses: actions/setup-node@v7
       with:
-        node-version: '18'
+        node-version: '24'
     - name: Install ctxlens
       shell: bash
       run: npm install -g ctxlens@latest
